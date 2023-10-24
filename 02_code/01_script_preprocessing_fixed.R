@@ -8,6 +8,8 @@ library(purrr)
 library(janitor)
 library(stringr)
 library(haven)
+library(forcats)
+
 
 # 01 Read data -------------------------------------------------------------------------------------
 data_pmd = read_excel(path = "./01_data/Originaldaten_PMD_IBE_final.xlsx", sheet = "Sheet1") 
@@ -58,9 +60,9 @@ rm(mins_rm)
 data = data %>% dplyr::rename(date = datum,
                        time = zeit,
                        age = alter,
-                       minutes_total = mins_gesamt,
-                       cost_total = kost_sum,
-                       cost_total_exclsys = kost_gesamt_ohnesys,
+                       minutes = mins_gesamt,
+                       cost = kost_sum,
+                       cost_exclsys = kost_gesamt_ohnesys,
                        palliativephase = palliativphase,
                        ipos_pain = IPOS_schmerzen,
                        ipos_shortness_breath = IPOS_atemnot,
@@ -160,12 +162,39 @@ length(unique(data$COMPANION_ID))
 
 # 08 Exclude patients with kost_sum = 0 ------------------------------------------------------------
 length(unique(data$COMPANION_ID))
-data = data %>% filter(cost_total > 0 )
+data = data %>% filter(cost > 0 )
 length(unique(data$COMPANION_ID)) 
 # no (complete) patients are excluded by this restriction!
 
-# 09 Save dataset ----------------------------------------------------------------------------------
-data = data %>% clean_names() %>% relocate(cost_total_exclsys, .after = cost_total)
+# 09 Calculate cost/minutes per diem for all potential outcome variables ---------------------------
+
+# add phase_days (indicates the number of days (as integers) between first and last contact=
+data = data %>% group_by(COMPANION_ID) %>%
+  arrange(datetime) %>% 
+  mutate(grp = cumsum(palliativephase != lag(palliativephase, def =
+                                               first(palliativephase)))) %>%
+  # grp = k means this is the k'th phase of the patient 
+  group_by(COMPANION_ID, grp) %>%
+  mutate(phase_days = 1 + as.numeric(difftime(max(date), min(date), units = "days"))) %>%
+  # (date instead of datetime because we only want to consider the date)
+  relocate(grp, palliativephase, phase_days, .after = datetime) %>% 
+  ungroup() %>%
+  arrange(COMPANION_ID, datetime)
+
+# add variables costpd, costpd_exclsys, minutespd
+# (indicate the per diem costs/minutes (on phase level), using phase_days as denominator)
+data = data %>% group_by(COMPANION_ID, grp) %>%
+  mutate(costpd = sum(cost)/phase_days,
+         costpd_exclsys = sum(cost_exclsys)/phase_days,
+         minutespd = sum(minutes)/phase_days) %>%
+  ungroup() %>%
+  relocate(costpd,costpd_exclsys,minutespd, .after = phase_days)
+
+# 10 Permanently remove one outlyier with costpd > 1200 ---------------------------------------------
+data = data %>% filter(costpd < 1200)
+
+# 11 Save dataset ----------------------------------------------------------------------------------
+data = data %>% clean_names() %>% relocate(cost_exclsys, .after = cost)
   
 save(data, file = "./01_data/data_all.RData") 
 

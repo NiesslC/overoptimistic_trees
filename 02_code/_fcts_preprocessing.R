@@ -1,9 +1,83 @@
-#preprocess_feature_akps_fct 
-testdat = data[1:1000,] 
+
+###########################
+#mlr_pipeops_mutate
+# target :mlr_pipeops_updatetarget or mlr_pipeops_targetmutate ?
+# ipos NA/"missing entfernen" + für akps auch cannot assess entferenen
+###
+# for input in mlr3 prüfen dass keine NAs
+# ordinale vars nicht vergessen
+# ganz am schluss droplevels?
+# fct descriptions
+# document id_train irgendwo
+#####################################################
 
 
-#mlr_pipeops_updatetarget or mlr_pipeops_targetmutate ?
-preprocess_target = function(data, option){ 
+
+preprocess_apply_firstdaycorrect_fct = function(data, target_name, correction_factors){
+  # We have to operate on contact level so get the corresponding names according to the considered target 
+  if(target_name == "costpd"){
+    target_name_contactlevel = "cost"
+  } else if(target_name == "costpd_exclsys"){
+    target_name_contactlevel = "cost_exclsys"
+  } else if(target_name == "minutespd"){
+    target_name_contactlevel = "minutes"
+  } 
+  
+  # Add correction factors to data and recalculate target variable 
+  data = full_join(data, correction_factors, by = c("setting", "team_id"))
+  data = data %>%
+    group_by(companion_id) %>% 
+    mutate("{target_name_contactlevel}" := case_when(
+      grp == 0 & date == min(date) ~ .data[[target_name_contactlevel]] * correction_factor_mean,
+      !(grp == 0 & date == min(date)) ~ .data[[target_name_contactlevel]])) %>%
+    group_by(companion_id, grp) %>% 
+    mutate("{target_name}" := sum(.data[[target_name_contactlevel]])/phase_days) %>%
+    ungroup() %>%
+    select(-correction_factor_mean)
+  
+  return(data)
+}
+
+# fct should not be used on whole data set
+preprocess_get_firstdaycorrect_fct = function(data, target_name){
+
+  # We have to operate on contact level so get the corresponding names according to the considered target 
+  if(target_name == "costpd"){
+    target_name_contactlevel = "cost"
+  } else if(target_name == "costpd_exclsys"){
+    target_name_contactlevel = "cost_exclsys"
+  } else if(target_name == "minutespd"){
+    target_name_contactlevel = "minutes"
+  } 
+  
+  # Get information whether a phase is the first one in the episode (only first days of each phase)
+  data_firstday = data  %>%
+    group_by(companion_id, grp, setting, team_id) %>% 
+    filter(date == min(date)) %>% # only use first day
+    summarise(target_daylevel = sum(.data[[target_name_contactlevel]])) %>% 
+    ungroup() %>% 
+    mutate(firstphase = ifelse(grp == 0, "first_phase_yes", "first_phase_no"))
+  
+  # (make sure that there is only one value per phase = data_firstday is on phase level)
+  stopifnot(all(data_firstday %>% group_by(companion_id, grp) %>% count() %>% .$n == 1))
+  
+  # Calculate correction factors
+  data_firstday = data_firstday %>%
+    group_by(setting, team_id, firstphase) %>%
+    summarise(mean_target_daylevel = mean(target_daylevel)) %>% 
+    ungroup()
+  data_firstday_mean = data_firstday %>% spread(firstphase, mean_target_daylevel)
+  data_firstday_mean = data_firstday_mean %>% mutate(correction_factor_mean = ifelse(first_phase_no/first_phase_yes < 1,
+                                                                                     first_phase_no/first_phase_yes,1)) %>%
+    select(-first_phase_yes, -first_phase_no)
+  
+  correction_factors = data_firstday_mean
+  return(correction_factors)
+}
+
+  
+
+preprocess_target_fct = function(data, option){ 
   
   if(option == "A"){
     # Option A ---- 
@@ -26,7 +100,7 @@ preprocess_target = function(data, option){
 }
 
 
-preprocess_feature_age = function(data, option){ 
+preprocess_feature_age_fct = function(data, option){ 
   if(option == "A"){
     # Option A ---- 
     # Leave age as continuous variable
@@ -168,12 +242,3 @@ preprocess_feature_ipos_fct = function(data, option){
 
 
 
-
-###########################
-#mlr_pipeops_mutate
-# ipos NA/"missing entfernen" + für akps auch cannot assess entferenen
-###
-# for input in mlr3 prüfen dass keine NAs
-# ordinale vars nicht vergessen
-# ganz am schluss droplevels?
-# fct descriptions
