@@ -1,17 +1,75 @@
 
-###########################
-#mlr_pipeops_mutate
-# target :mlr_pipeops_updatetarget or mlr_pipeops_targetmutate ?
-# ipos NA/"missing entfernen" + für akps auch cannot assess entferenen
-###
-# for input in mlr3 prüfen dass keine NAs
-# ordinale vars nicht vergessen
-# ganz am schluss droplevels?
-# fct descriptions
-# document id_train irgendwo
-#####################################################
+preprocess_rmoutliers_fct = function(data, data_calc, targetname, option){
+  if(option == "A"){
+    # Option A ---- 
+    # 100th percentile (do not remove outliers)
+    percentile = 1.00
+  } else if(option == "B"){
+    # Option B ---- 
+    # 99th percentile (do not remove outliers)
+    percentile = 0.99
+  } else if(option == "C"){
+    # Option C ---- 
+    # 95th percentile (do not remove outliers)
+    percentile = 0.95
+  } else if(option == "D"){
+    # Option D ---- 
+    # 90th percentile (do not remove outliers)
+    percentile = 0.90
+  }
+  
+  outlier_threshold = unname(unlist(data_calc %>% 
+                               ungroup() %>% 
+                               summarise(perc = quantile(.data[[target_name]], percentile))))
+  data = data %>% filter(!!as.name(target_name) <= outlier_threshold)
+  return(data)
+}
 
 
+preprocess_contact2phaselevel_fct = function(data, vars_vary){
+  # We need to consider every variable in vars_vary separately because we (sometimes) have to filter different 
+  # time points on the first day 
+  # -> Separate dataset according to variables potentially varying (=sep) and not varying within phases (=data_phaselevel)
+  #    and merge them in the end
+  # -> Remove variables related to target that vary within phases and are not needed anymore
+  data_phaselevel = data %>% group_by(companion_id, grp) %>% filter(date == min(date)) %>% ungroup() %>%
+    select(-all_of(vars_vary),-time, -datetime,-minutes,-cost,-cost_exclsys) %>%
+    group_by(companion_id, grp) %>%
+    distinct()
+  
+  missings = c(NA, "cannot assess")
+  
+  for(i in 1:length(vars_vary)){
+    sep = data %>% group_by(companion_id, grp) %>% filter(date == min(date)) %>% 
+      select(companion_id, grp, !!rlang::sym(vars_vary[i])) %>% 
+      # Only keep unique values occured on first day:
+      distinct(!!rlang::sym(vars_vary[i]), .keep_all = TRUE) %>% 
+      # Only keep NA/"cannot assess" if it is the only value measured on the first day:
+      filter(!!rlang::sym(vars_vary[i]) %in% setdiff(levels(!!rlang::sym(vars_vary[i])), missings) |
+               (!any(!!rlang::sym(vars_vary[i]) %in% setdiff(levels(!!rlang::sym(vars_vary[i])), missings)) &
+                  !!rlang::sym(vars_vary[i]) %in% missings)) %>% ungroup() 
+    
+    # If more than one value on first day, use min value for AKPS and max value for all other features:
+    # (in the very rare case [< 5 phases] where both missing values appear on one day, use NA)
+    if(grepl("akps", vars_vary[i])){
+      sep = sep %>% group_by(companion_id, grp) %>% 
+        filter(as.integer(!!rlang::sym(vars_vary[i])) == min(as.integer(!!rlang::sym(vars_vary[i])))) %>%
+        ungroup()
+    } else{
+      sep = sep %>% group_by(companion_id, grp) %>% 
+        filter(as.integer(!!rlang::sym(vars_vary[i])) == max(as.integer(!!rlang::sym(vars_vary[i])))) %>%
+        ungroup()
+    }
+    
+    # Merge with data_phaselevel
+    data_phaselevel = full_join(data_phaselevel, sep, by = c("companion_id", "grp"))
+  } 
+  
+  # After preparing the data, it should have excactly one observation per companion_id and phase (grp):
+  stopifnot(nrow(data%>% distinct(grp, companion_id)) == nrow(data_phaselevel))
+  return(data_phaselevel)
+}
+  
 
 preprocess_apply_firstdaycorrect_fct = function(data, target_name, correction_factors){
   # We have to operate on contact level so get the corresponding names according to the considered target 
@@ -58,7 +116,7 @@ preprocess_get_firstdaycorrect_fct = function(data, target_name){
     ungroup() %>% 
     mutate(firstphase = ifelse(grp == 0, "first_phase_yes", "first_phase_no"))
   
-  # (make sure that there is only one value per phase = data_firstday is on phase level)
+  # (Make sure that there is only one value per phase = data_firstday is on phase level)
   stopifnot(all(data_firstday %>% group_by(companion_id, grp) %>% count() %>% .$n == 1))
   
   # Calculate correction factors
