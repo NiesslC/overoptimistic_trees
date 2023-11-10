@@ -153,9 +153,9 @@ apply(data, 2, FUN = function(i) sum(i == "missing", na.rm = TRUE))
 # -> we thus drop the "missing" level from all factors
 data = data %>% mutate(across(where(is.factor), ~ fct_drop(., only = c("missing"))))
 
-# 07 Exclude palliativephase = "bereavement" and contacts with AKPS = "dead"  ----------------------
+# 07 Exclude palliativephase = "bereavement" and contacts with AKPS = 0 ("dead")  ----------------------
 length(unique(data$COMPANION_ID))
-data = data %>% filter(palliativephase != "bereavement" & AKPS != "dead")
+data = data %>% filter(palliativephase != "bereavement" & AKPS != 0)
 length(unique(data$COMPANION_ID)) 
 
 # no (complete) patients are excluded by this restriction!
