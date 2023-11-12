@@ -32,19 +32,17 @@ cf3 = preprocess_get_firstdaycorrect_fct(data = datasim %>% filter(allocation ==
 datasim = preprocess_apply_firstdaycorrect_fct(data = datasim, target_name = target_names[3], correction_factors = cf3)
 rm(cf1, cf2, cf3)
 
-
 # 3. Get data on phase level ----
-# (for variables potentially varying within phase, value on first day is used)
-datasim = preprocess_contact2phaselevel_fct(data = datasim, 
-                                         vars_vary = colnames(data %>% select(contains("ipos_"),  contains("cogn_"), akps)))
+# (remove variables varying within phase and only keep distinct values and make sure there is 
+# exactly one row per patient and phase)
+datasim = datasim %>% select(-date, -time, -datetime, -minutes, -cost, -cost_exclsys) %>% distinct()
+stopifnot(nrow(datasim %>% distinct(companion_id, grp)) == nrow(datasim))
 
-# 4. Missing values handling (fixed) ----
+# 4. Removal of missing values (fixed) ----
 # - ipos_ variables: remove phases with NAs in ipos variables
 datasim = datasim %>% filter_at(vars(starts_with("ipos_")), all_vars(!is.na(.)))
 # - cogn_ variables: remove phases with NA in cogn variables
 datasim = datasim %>% filter_at(vars(starts_with("cogn_")), all_vars(!is.na(.)))
-# - cogn_ variables: remove phases with NA in cogn variables
-datasim = datasim %>% mutate(across(starts_with("cogn_"), ~ forcats::fct_recode(.,  "absent" = "cannot assess")))
 # - akps: remove phases with NA or 'cannot assess' 
 datasim = datasim %>% filter(!is.na(akps) & akps != "cannot assess")
 
@@ -53,9 +51,7 @@ datasim = datasim %>% filter(!is.na(akps) & akps != "cannot assess")
 datasim = datasim %>% droplevels()
 
 
-### berechne first day werte von vars_vary schon in 01_script_preprocessing_fixed!!!
-
-
+# next: removal of missing values ipos
 
 
 ###########################
@@ -71,6 +67,8 @@ datasim = datasim %>% droplevels()
 # - document id_train irgendwo
 # - welche variables noch entfernt außer dry mouth
 # - setting auswahl parameter
+# - check dass alle die sein sollen ordinal 
+# - check dass kein NA + kein cannot assess in den daten 
 # - evtl. schnellere alternative für sysvar rlang 
 #####################################################
 
