@@ -153,7 +153,7 @@ apply(data, 2, FUN = function(i) sum(i == "missing", na.rm = TRUE))
 # -> we thus drop the "missing" level from all factors
 data = data %>% mutate(across(where(is.factor), ~ fct_drop(., only = c("missing"))))
 
-# 07 Exclude palliativephase = "bereavement" and contacts with AKPS = 0 ("dead")  ----------------------
+# 07 Exclude palliativephase = "bereavement" and contacts with AKPS = 0 ("dead")  ------------------
 length(unique(data$COMPANION_ID))
 data = data %>% filter(palliativephase != "bereavement" & AKPS != 0)
 length(unique(data$COMPANION_ID)) 
@@ -188,14 +188,86 @@ data = data %>% group_by(COMPANION_ID, grp) %>%
          costpd_exclsys = sum(cost_exclsys)/phase_days,
          minutespd = sum(minutes)/phase_days) %>%
   ungroup() %>%
-  relocate(costpd,costpd_exclsys,minutespd, .after = phase_days)
+  relocate(costpd,costpd_exclsys,minutespd, .after = phase_days) %>%
+  relocate(cost_exclsys, .after = cost)
 
-# 10 Permanently remove one outlyier with costpd > 1200 ---------------------------------------------
+# 10 Exclude one phase with costpd > 1200 ----------------------------------------------------------
 data = data %>% filter(costpd < 1200)
 
-# 11 Save dataset ----------------------------------------------------------------------------------
-data = data %>% clean_names() %>% relocate(cost_exclsys, .after = cost)
+# 11 Clean names -----------------------------------------------------------------------------------
+data = data %>% clean_names() 
+
+
+# 12 Extract phase levels values of time-varying features and insert them in contact level data ----
+
+# Currently, the dataset is on contact level but the analysis will be on palliative phase level
+# -> For each feature, we will need one single value per palliative care phase (= observation level)
+# -> We extract this value ("A.") but will merge it back to the contact level dataset ("B.") since we still need
+#    the contact level information for the target variables (for these variables, the phase level 
+#    value will be extracted within the modeling process, so we cannot reduce the dataset to phase level
+#    at this point.)
+
+## A. Extract phase level value ----
+vars_vary = colnames(data %>% select(contains("ipos_"),  contains("cogn_"), akps))
+# We need to consider every variable in vars_vary separately because we (sometimes) have to filter different 
+# time points on the first day 
+# -> Separate dataset according to variables potentially varying (=sep) and not varying within phases (=data_phaselevel)
+#    and merge them in the end
+data_phaselevel = data %>% 
+  group_by(companion_id, grp) %>% 
+  filter(date == min(date)) %>% 
+  ungroup() %>%
+  select(-all_of(vars_vary),-time, -datetime,-minutes,-cost,-cost_exclsys) %>%
+  group_by(companion_id, grp) %>%
+  distinct()
+
+missings = c(NA, "cannot assess")
+
+for(i in 1:length(vars_vary)){
+  sep = data %>% group_by(companion_id, grp) %>% filter(date == min(date)) %>% 
+    select(companion_id, grp, !!rlang::sym(vars_vary[i])) %>% 
+    # Only keep unique values occured on first day:
+    distinct(!!rlang::sym(vars_vary[i]), .keep_all = TRUE) %>% 
+    # Only keep NA/"cannot assess" if it is the only value measured on the first day:
+    filter(!!rlang::sym(vars_vary[i]) %in% setdiff(levels(!!rlang::sym(vars_vary[i])), missings) |
+             (!any(!!rlang::sym(vars_vary[i]) %in% setdiff(levels(!!rlang::sym(vars_vary[i])), missings)) &
+                !!rlang::sym(vars_vary[i]) %in% missings)) %>% ungroup() 
   
+  # If more than one value on first day, use min value for AKPS and max value for all other features:
+  # (in the very rare case [< 5 phases] where both missing values appear on one day, use NA)
+  if(grepl("akps", vars_vary[i])){
+    sep = sep %>% group_by(companion_id, grp) %>% 
+      filter(as.integer(!!rlang::sym(vars_vary[i])) == min(as.integer(!!rlang::sym(vars_vary[i])))) %>%
+      ungroup()
+  } else{
+    sep = sep %>% group_by(companion_id, grp) %>% 
+      filter(as.integer(!!rlang::sym(vars_vary[i])) == max(as.integer(!!rlang::sym(vars_vary[i])))) %>%
+      ungroup()
+  }
+  
+  # Merge with data_phaselevel
+  data_phaselevel = full_join(data_phaselevel, sep, by = c("companion_id", "grp"))
+} 
+
+# Remove date variable (also varying within phase)
+data_phaselevel = data_phaselevel %>% select(-date)
+
+# After preparing the data, it should have excactly one observation per companion_id and phase (grp):
+stopifnot(nrow(data %>% distinct(grp, companion_id)) == nrow(data_phaselevel))
+ 
+## B. Insert phase level value into contact level dataset ----
+data = data %>% 
+  select(-all_of(vars_vary)) %>% # remove contact level values
+  select(-age) # also remove age from contact level dataset because age may change within 
+               # phase by one year (insert age value of first day of phase below)
+     
+data = full_join(data, data_phaselevel, by = setdiff(colnames(data_phaselevel), c("age", vars_vary)))
+
+# 13 Set "cannot assess" to "absent" in cognitive variables and mutate as ordinal variable ---------
+data = data %>%
+  mutate(across(starts_with("cogn_"), ~ forcats::fct_recode(.,  "absent" = "cannot assess"))) %>% 
+  mutate(across(starts_with("cogn_"), ~ factor(., ordered = TRUE)))
+# 14 Save dataset ----------------------------------------------------------------------------------
 save(data, file = "./01_data/data_all.RData") 
 
 
