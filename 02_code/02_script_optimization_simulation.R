@@ -46,12 +46,12 @@ datasim = datasim %>% filter_at(vars(starts_with("cogn_")), all_vars(!is.na(.)))
 # - akps: remove phases with NA or 'cannot assess' 
 datasim = datasim %>% filter(!is.na(akps) & akps != "cannot assess")
 
-
+################################
 # Drop unused levels ----
 datasim = datasim %>% droplevels()
+datasim$id = factor(datasim$id)
+datasim$team_name = factor(datasim$team_name) 
 
-
-# next: removal of missing values ipos
 
 
 ###########################
@@ -70,5 +70,8 @@ datasim = datasim %>% droplevels()
 # - check dass alle die sein sollen ordinal 
 # - check dass kein NA + kein cannot assess in den daten 
 # - evtl. schnellere alternative für sysvar rlang 
+# - man könnte manche hyperparameter auch stetig machen
+# - evtl cutoff werte für ipos cannot assess noch ändern (damit nicht zu viel entfernt)
+# - reihenfolge der pipelines beachten (zb select ipos_ kann probleme machen wenn nach transf. angewendet)
 #####################################################
 
