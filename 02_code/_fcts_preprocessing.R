@@ -63,6 +63,23 @@ preprocess_get_firstdaycorrect_fct = function(data, target_name){
 }
 
 
+preprocess_rmcannotassess_ipos = function(data, option){
+  # Get number of "cannot assess" values per observation
+  data = data %>%  
+    rowwise() %>%
+    mutate(sum_notassess = sum(c_across(starts_with("ipos_")) == "cannot assess"))
+  ## Option A-H ----
+  list_options = as.list(17:10) 
+  names(list_options) = LETTERS[1:length(list_options)]
+  cutoff = list_options[[option]]
+  
+  # Remove observations with more "cannot assess" values than cutoff
+  data = data %>% filter(sum_notassess < cutoff) %>% select(sum_notassess)
+  return(data)
+}
+
+
+
 preprocess_rmoutliers_fct = function(data, data_calc, targetname, option){
   if(option == "A"){
     # Option A ---- 
