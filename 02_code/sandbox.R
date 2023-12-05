@@ -2,6 +2,7 @@ library("mlr3")
 library("mlr3pipelines")
 
 testdat = data[1:20,]
+testdat = testdat %>% select()
 task = as_task_regr(testdat, target = "costpd")
 task$data()
 
@@ -40,9 +41,6 @@ PipeOpPreprocFeatureAge = R6::R6Class("PipeOpPreprocFeatureAge",
                                                      param_vals = param_vals)
                                   }
                                 ),
-                            
-                          
-                                
                                 # public = list(
                                 #   initialize = function(id = "preproc.feature.age") {
                                 #     param_set = ps(
