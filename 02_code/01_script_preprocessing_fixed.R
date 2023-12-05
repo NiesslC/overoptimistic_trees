@@ -191,6 +191,9 @@ data = data %>% group_by(COMPANION_ID, grp) %>%
   relocate(costpd,costpd_exclsys,minutespd, .after = phase_days) %>%
   relocate(cost_exclsys, .after = cost)
 
+# add dummy target variable (will later have the values of one of the three possible outcome variables)
+data = data %>% mutate(targetvar = 0)
+
 # 10 Exclude one phase with costpd > 1200 ----------------------------------------------------------
 data = data %>% filter(costpd < 1200)
 
