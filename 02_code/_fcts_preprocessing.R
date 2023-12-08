@@ -63,48 +63,39 @@ preprocess_get_firstdaycorrect_fct = function(data, target_name){
 }
 
 
-preprocess_rmcannotassess_ipos = function(data, option){
-  # Get number of "cannot assess" values per observation
-  data = data %>%  
-    rowwise() %>%
-    mutate(sum_notassess = sum(c_across(starts_with("ipos_")) == "cannot assess"))
+preprocess_drop_iposca_fct = function(option){
   ## Option A-H ----
   list_options = as.list(17:10) 
   names(list_options) = LETTERS[1:length(list_options)]
-  cutoff = list_options[[option]]
-  
-  # Remove observations with more "cannot assess" values than cutoff
-  data = data %>% filter(sum_notassess < cutoff) %>% select(sum_notassess)
-  return(data)
+  threshold = list_options[[option]]
+  return(threshold)
 }
 
 
-
-preprocess_rmoutliers_fct = function(data, data_calc, targetname, option){
+preprocess_drop_targetout_fct = function(target_values, option){
   if(option == "A"){
-    # Option A ---- 
+    # Option A ----
     # 100th percentile (do not remove outliers)
     percentile = 1.00
   } else if(option == "B"){
-    # Option B ---- 
-    # 99th percentile (do not remove outliers)
+    # Option B ----
+    # 99th percentile 
     percentile = 0.99
   } else if(option == "C"){
-    # Option C ---- 
-    # 95th percentile (do not remove outliers)
+    # Option C ----
+    # 95th percentile 
     percentile = 0.95
   } else if(option == "D"){
-    # Option D ---- 
-    # 90th percentile (do not remove outliers)
+    # Option D ----
+    # 90th percentile 
     percentile = 0.90
   }
   
-  outlier_threshold = unname(unlist(data_calc %>% 
-                                      ungroup() %>% 
-                                      summarise(perc = quantile(.data[[target_name]], percentile))))
-  data = data %>% filter(!!as.name(target_name) <= outlier_threshold)
-  return(data)
-}
+  outlier_threshold = quantile(unlist(target_values),percentile)
+  return(outlier_threshold)
+  }
+
+
 
 preprocess_target_fct = function(data, option){ 
   
