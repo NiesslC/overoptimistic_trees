@@ -18,10 +18,17 @@ source("./02_code/_fcts_trees.R")
 source("./02_code/_fcts_optim.R")
 
 # Simulation parameters ----------------------------------------------------------------------------
+# Set of preprocessing operations with hyperparameters 
+# (Note: in the pipeline %>>%, preproc.target need to be before preproc.drop.targetout and
+#  preproc.drop.iposca before preproc.feature.ipos)
 preproc_hp_set = list("preproc.target" = c("A", "B", "C"),
-                               "preproc.feature.ipos" = c("A", "B", "C", "D", "E"),
-                               "preproc.feature.age" = c("A", "B"))
-preproc_hp_stepopt_order = c("preproc.target", "preproc.feature.ipos", "preproc.feature.age")
+                      "preproc.drop.targetout" = c("A", "B", "C", "D"),
+                      "preproc.drop.iposca" = c("A", "B", "C", "D", "E", "F", "G", "H"),
+                      "preproc.feature.ipos" = c("A", "B", "C", "D", "E"),
+                      "preproc.feature.age" = c("A", "B"))
+# Order for stepwise optimization 
+preproc_hp_stepopt_order = c("preproc.target", "preproc.feature.ipos", "preproc.feature.age",
+                             "preproc.drop.targetout", "preproc.drop.iposca")
 setting_param = "sapv"
 eval_criterion = "regr.rsq" 
 feature_names_raw = c("age","ipos_pain","ipos_shortness_breath","ipos_weakness","ipos_nausea",          
@@ -195,6 +202,7 @@ t4 = generate_and_eval_tree_fct(procedure = "preproc.hp.tune_algo.hp.tune",
 # - check dass alle die sein sollen ordinal 
 # - check dass kein NA + kein cannot assess in den daten 
 # - evtl. schnellere alternative für sysvar rlang 
+# - verhalten der algorithmen bei missing values (auch bzgl. fixfactors)
 # - man könnte manche hyperparameter auch stetig machen
 # - evtl cutoff werte für ipos cannot assess noch ändern (damit nicht zu viel entfernt)
 # - reihenfolge der pipelines beachten (zb select ipos_ kann probleme machen wenn nach transf. angewendet)
