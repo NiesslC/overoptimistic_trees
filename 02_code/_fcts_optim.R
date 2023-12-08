@@ -20,6 +20,8 @@ generate_and_eval_tree_fct = function(procedure,
     
     # Initialize preprocessing hyperparameter setting (= defaults = all options set to "A")
     current_preproc_hp = list("preproc.target" = preproc_hp_set$preproc.target[[1]],
+                              "preproc.drop.targetout" = preproc_hp_set$preproc.drop.targetout[[1]],
+                              "preproc.drop.iposca" = preproc_hp_set$preproc.drop.iposca[[1]],
                               "preproc.feature.ipos" = preproc_hp_set$preproc.feature.ipos[[1]],
                               "preproc.feature.age" = preproc_hp_set$preproc.feature.age[[1]])
     
@@ -56,6 +58,8 @@ generate_and_eval_tree_fct = function(procedure,
                     xval = rpart_hp$fixed$xval, 
                     keep_model = rpart_hp$fixed$keep_model) 
       graph_learner = as_learner(po("preproc.target", option = final_preproc_hp$preproc.target) %>>%
+                                   po("preproc.drop.targetout", option = final_preproc_hp$preproc.drop.targetout) %>>%
+                                   po("preproc.drop.iposca", option = final_preproc_hp$preproc.drop.iposca) %>>%
                                    po("preproc.feature.ipos", option = final_preproc_hp$preproc.feature.ipos) %>>% 
                                    po("preproc.feature.age", option = final_preproc_hp$preproc.feature.age) %>>% 
                                    po("fixfactors") %>>%
@@ -93,9 +97,11 @@ generate_and_eval_tree_fct = function(procedure,
                   xval = rpart_hp$fixed$xval, 
                   keep_model = rpart_hp$fixed$keep_model) 
     graph_learner = as_learner(po("preproc.target") %>>%
-                                po("preproc.feature.ipos") %>>% 
-                                po("preproc.feature.age") %>>% 
-                                po("fixfactors") %>>%
+                                 po("preproc.drop.targetout") %>>%
+                                 po("preproc.drop.iposca") %>>%
+                                 po("preproc.feature.ipos") %>>% 
+                                 po("preproc.feature.age") %>>% 
+                                 po("fixfactors") %>>%
                                 learner)
    # Set parameter space for algorithm and preprocessing hp ----
    search_space = ps(
@@ -104,6 +110,8 @@ generate_and_eval_tree_fct = function(procedure,
      regr.rpart.minbucket = p_int(lower = rpart_hp$tuning$minbucket_lower, 
                                   upper = rpart_hp$tuning$minbucket_upper),
      preproc.target.option = p_fct(preproc_hp_set$preproc.target),
+     preproc.drop.targetout.option = p_fct(preproc_hp_set$preproc.drop.targetout),
+     preproc.drop.iposca.option = p_fct(preproc_hp_set$preproc.drop.iposca),
      preproc.feature.ipos.option = p_fct(preproc_hp_set$preproc.feature.ipos),
      preproc.feature.age.option = p_fct(preproc_hp_set$preproc.feature.age)
    ) 
@@ -163,9 +171,11 @@ get_stepopt_preproc_hp_fct = function(current_preproc_hp,
                 keep_model = rpart_hp$fixed$keep_model) 
   graph_list = toeval_preproc_hp %>%
     purrr::map(~ as_learner(po("preproc.target", option = .x$preproc.target) %>>%
-                 po("preproc.feature.ipos", option = .x$preproc.feature.ipos) %>>% 
-                 po("preproc.feature.age", option = .x$preproc.feature.age) %>>% 
-                 po("fixfactors") %>>%
+                              po("preproc.drop.targetout", option = .x$preproc.drop.targetout) %>>%
+                              po("preproc.drop.iposca", option = .x$preproc.drop.iposca) %>>%
+                              po("preproc.feature.ipos", option = .x$preproc.feature.ipos) %>>% 
+                              po("preproc.feature.age", option = .x$preproc.feature.age) %>>% 
+                              po("fixfactors") %>>%
                  learner))
   # #graph$plot()
   
