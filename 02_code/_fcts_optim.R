@@ -23,7 +23,8 @@ generate_and_eval_tree_fct = function(procedure,
                               "preproc.drop.targetout" = preproc_hp_set$preproc.drop.targetout[[1]],
                               "preproc.drop.iposca" = preproc_hp_set$preproc.drop.iposca[[1]],
                               "preproc.feature.ipos" = preproc_hp_set$preproc.feature.ipos[[1]],
-                              "preproc.feature.age" = preproc_hp_set$preproc.feature.age[[1]])
+                              "preproc.feature.age" = preproc_hp_set$preproc.feature.age[[1]],
+                              "preproc.feature.akps" = preproc_hp_set$preproc.feature.akps[[1]])
     
     # For each preprocessing operation, generate a tree with each option where the algorithm hyperparameters 
     # are tuned using resampling    
@@ -62,6 +63,7 @@ generate_and_eval_tree_fct = function(procedure,
                                    po("preproc.drop.iposca", option = final_preproc_hp$preproc.drop.iposca) %>>%
                                    po("preproc.feature.ipos", option = final_preproc_hp$preproc.feature.ipos) %>>% 
                                    po("preproc.feature.age", option = final_preproc_hp$preproc.feature.age) %>>% 
+                                   po("preproc.feature.akps", option = final_preproc_hp$preproc.feature.akps) %>>% 
                                    po("fixfactors") %>>%
                                    learner)
       search_space = ps(
@@ -101,6 +103,7 @@ generate_and_eval_tree_fct = function(procedure,
                                  po("preproc.drop.iposca") %>>%
                                  po("preproc.feature.ipos") %>>% 
                                  po("preproc.feature.age") %>>% 
+                                 po("preproc.feature.akps") %>>% 
                                  po("fixfactors") %>>%
                                 learner)
    # Set parameter space for algorithm and preprocessing hp ----
@@ -113,7 +116,8 @@ generate_and_eval_tree_fct = function(procedure,
      preproc.drop.targetout.option = p_fct(preproc_hp_set$preproc.drop.targetout),
      preproc.drop.iposca.option = p_fct(preproc_hp_set$preproc.drop.iposca),
      preproc.feature.ipos.option = p_fct(preproc_hp_set$preproc.feature.ipos),
-     preproc.feature.age.option = p_fct(preproc_hp_set$preproc.feature.age)
+     preproc.feature.age.option = p_fct(preproc_hp_set$preproc.feature.age),
+     preproc.feature.akps.option = p_fct(preproc_hp_set$preproc.feature.akps)
    ) 
     # Get tree incl. apparent and resampling and test set error ----
    final_tree = get_tuned_hp_fct(task = task,
@@ -175,6 +179,7 @@ get_stepopt_preproc_hp_fct = function(current_preproc_hp,
                               po("preproc.drop.iposca", option = .x$preproc.drop.iposca) %>>%
                               po("preproc.feature.ipos", option = .x$preproc.feature.ipos) %>>% 
                               po("preproc.feature.age", option = .x$preproc.feature.age) %>>% 
+                              po("preproc.feature.akps", option = .x$preproc.feature.akps) %>>% 
                               po("fixfactors") %>>%
                  learner))
   # #graph$plot()
