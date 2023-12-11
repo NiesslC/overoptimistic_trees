@@ -1,67 +1,5 @@
 
 
-preprocess_apply_firstdaycorrect_fct = function(data, target_name, correction_factors){
-  # We have to operate on contact level so get the corresponding names according to the considered target 
-  if(target_name == "costpd"){
-    target_name_contactlevel = "cost"
-  } else if(target_name == "costpd_exclsys"){
-    target_name_contactlevel = "cost_exclsys"
-  } else if(target_name == "minutespd"){
-    target_name_contactlevel = "minutes"
-  } 
-  
-  # Add correction factors to data and recalculate target variable 
-  data = full_join(data, correction_factors, by = c("setting", "team_id"))
-  data = data %>%
-    group_by(companion_id) %>% 
-    mutate("{target_name_contactlevel}" := case_when(
-      grp == 0 & date == min(date) ~ .data[[target_name_contactlevel]] * correction_factor_mean,
-      !(grp == 0 & date == min(date)) ~ .data[[target_name_contactlevel]])) %>%
-    group_by(companion_id, grp) %>% 
-    mutate("{target_name}" := sum(.data[[target_name_contactlevel]])/phase_days) %>%
-    ungroup() %>%
-    select(-correction_factor_mean)
-  
-  return(data)
-}
-
-# fct should not be used on whole data set
-preprocess_get_firstdaycorrect_fct = function(data, target_name){
-
-  # We have to operate on contact level so get the corresponding names according to the considered target 
-  if(target_name == "costpd"){
-    target_name_contactlevel = "cost"
-  } else if(target_name == "costpd_exclsys"){
-    target_name_contactlevel = "cost_exclsys"
-  } else if(target_name == "minutespd"){
-    target_name_contactlevel = "minutes"
-  } 
-  
-  # Get information whether a phase is the first one in the episode (only first days of each phase)
-  data_firstday = data  %>%
-    group_by(companion_id, grp, setting, team_id) %>% 
-    filter(date == min(date)) %>% # only use first day
-    summarise(target_daylevel = sum(.data[[target_name_contactlevel]])) %>% 
-    ungroup() %>% 
-    mutate(firstphase = ifelse(grp == 0, "first_phase_yes", "first_phase_no"))
-  
-  # (Make sure that there is only one value per phase = data_firstday is on phase level)
-  stopifnot(all(data_firstday %>% group_by(companion_id, grp) %>% count() %>% .$n == 1))
-  
-  # Calculate correction factors
-  data_firstday = data_firstday %>%
-    group_by(setting, team_id, firstphase) %>%
-    summarise(mean_target_daylevel = mean(target_daylevel)) %>% 
-    ungroup()
-  data_firstday_mean = data_firstday %>% spread(firstphase, mean_target_daylevel)
-  data_firstday_mean = data_firstday_mean %>% mutate(correction_factor_mean = ifelse(first_phase_no/first_phase_yes < 1,
-                                                                                     first_phase_no/first_phase_yes,1)) %>%
-    select(-first_phase_yes, -first_phase_no)
-  
-  correction_factors = data_firstday_mean
-  return(correction_factors)
-}
-
 
 preprocess_drop_iposca_fct = function(option){
   ## Option A-H ----
@@ -97,29 +35,84 @@ preprocess_drop_targetout_fct = function(target_values, option){
 
 
 
-preprocess_target_fct = function(data, option){ 
+
+preprocess_target_fct = function(data, option, correction_factors){
+  
+  # Select target variable
+  if(option == "A"){
+    # Option A ---- 
+    # cost variable as basis for target
+    sum_target_day_1 = "sum_cost_day_1"
+    sum_target_day_geq2 = "sum_cost_day_geq2"
+  } else if(option == "B"){
+    # Option B ---- 
+    # cost_exclsys variable as basis for target   
+    sum_target_day_1 = "sum_cost_exclsys_day_1"
+    sum_target_day_geq2 = "sum_cost_exclsys_day_geq2"
+  } else if(option == "C"){
+    # Option C ---- 
+    # minutes variable as basis for target
+    sum_target_day_1 = "sum_minutes_day_1"
+    sum_target_day_geq2 = "sum_minutes_day_geq2"
+    
+  }
+  # Add correction factors to data (if there is no correction factor for a team id in data, set cf to 1)
+  data = left_join(data, correction_factors, by = c("setting", "team_id")) %>%
+    mutate(correction_factor = ifelse(is.na(correction_factor), 1, correction_factor))
+  
+  # Calculate target variable 
+  # (note that sum_target_day_geq2 can be NA if phase only lasts one day)
+  data = data %>%
+    rowwise() %>% 
+    mutate(targetvar = case_when(
+      grp == 0  ~ sum(c(correction_factor * .data[[sum_target_day_1]],
+                        .data[[sum_target_day_geq2]]), na.rm = TRUE)/ 
+        phase_days,
+      grp != 0 ~ sum(c(.data[[sum_target_day_1]],
+                       .data[[sum_target_day_geq2]]), na.rm = TRUE)/
+        phase_days
+    )) %>%
+    ungroup() %>% 
+    select(-correction_factor, # remove variables that are not needed anymore
+           -contains("sum_cost"),
+           -contains("sum_minutes"),
+           -phase_days,
+           -grp)
+  stopifnot(sum(is.na(data$targetvar)) == 0) # check that no NAs
+  stopifnot(all(data$targetvar >= 0)) # check that target variable is > 0 
+  return(data)
+}
+
+preprocess_target_getcorr_fct = function(data, option){ 
   
   if(option == "A"){
     # Option A ---- 
-    # Use "costpd" as target variable (remove "costpd_exclsys" and "minutespd" )
-    data = data %>% mutate(targetvar = costpd) %>% 
-      select(-costpd, -costpd_exclsys, -minutespd)
-    target_name = "cost_total"
-  } else if(option == "B"){
+    # cost variable as basis for target
+    sum_target_day_1 = "sum_cost_day_1"
+      } else if(option == "B"){
     # Option B ---- 
-    # Use "costpd_exclsys" as target variable (remove "costpd" and "minutespd" )
-    data = data %>% mutate(targetvar = costpd_exclsys) %>% 
-      select(-costpd, -costpd_exclsys, -minutespd)
-    target_name = "cost_total_exclsys"
+    # cost_exclsys variable as basis for target   
+    sum_target_day_1 = "sum_cost_exclsys_day_1"
   } else if(option == "C"){
     # Option C ---- 
-    # Use "minutespd" as target variable (remove "costpd" and "costpd_exclsys" )
-    data = data %>%  mutate(targetvar = minutespd) %>% 
-      select(-costpd, -costpd_exclsys, -minutespd)
-    target_name = "minutes_total"
+    # minutes variable as basis for target
+    sum_target_day_1 = "sum_minutes_day_1"
   }
-  return(data)
-  #return(list("data" = data, "target_name" = target_name))
+  
+  # Calculate correction factors
+  means_firstday = data %>%
+    mutate(number_phase = ifelse(grp == 0, "phase_1", "phase_geq2")) %>%
+    group_by(setting, team_id, number_phase) %>% # calculate mean separately for phase no. = 1 vs. >= 2
+    summarise(mean_sum_target_day_1 = mean(.data[[sum_target_day_1]])) %>% 
+    ungroup()
+  correction_factors = means_firstday %>% 
+    spread(number_phase, mean_sum_target_day_1) %>%
+    mutate(correction_factor = ifelse(phase_geq2/phase_1 < 1,
+                                           phase_geq2/phase_1,1)) %>%
+    select(-phase_1, -phase_geq2)
+  
+ 
+  return(correction_factors)
 }
 
 
@@ -133,8 +126,8 @@ preprocess_feature_age_fct = function(data, option){
     # Categorize age (= factor variable, but not ordered factor!)
     data = data %>% 
       mutate(age =  cut(age, breaks = c(21,seq(50,90,10),104), include.lowest = TRUE ))
-    stopifnot(sum(is.na(data$age))==0) # make sure that no NAs were generated by transformation
   }
+  stopifnot(sum(is.na(data$age))==0) # check that no NAs
   return(data)
   }
 
@@ -159,6 +152,7 @@ preprocess_feature_akps_fct = function(data, option){
         .default = akps)) %>% 
       mutate(akps = factor(akps, ordered = TRUE))
   }
+  stopifnot(sum(is.na(data$akps))==0) # check that no NAs
   return(data)
 }
 
@@ -251,10 +245,12 @@ preprocess_feature_ipos_fct = function(data, option){
     #   . == 3 ~ "moderately",
     #   . %in% c(4,5) |is.na(.)~ "slightlyorless" )))%>%
     #   mutate(across(starts_with("ipos"),  ~ factor(., levels = c("slightlyorless","moderately","severely","overwhelmingly"),ordered = TRUE)))
-    feature_names = colnames(data %>% select(starts_with("ipos")))
+    #feature_names = colnames(data %>% select(starts_with("ipos")))
   }
   
   #return(list("data" = data, "feature_names" = feature_names))
+  
+  stopifnot(all(colSums(is.na(data%>% select(starts_with("ipos")) ))==0)) # check that no NAs
   return(data)
 }
 
