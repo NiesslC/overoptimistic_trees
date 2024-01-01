@@ -36,6 +36,7 @@ get_tuned_hp_fct = function(task,
   # Return results ----
     result = list("graph_learner_tuned" = graph_learner_tuned,
                   "hp_values" = instance$result_learner_param_vals,
+                  "train_task" = graph_learner_tuned$model$regr.rpart$train_task, # task that was eventually used to train the model
                   "apparent_error" = apparent_error,
                   "resampling_error" = resampling_error,
                   "test_error"= test_error)
