@@ -116,20 +116,20 @@ rm(data_train)
 # 3. Generate trees and get associated errors 
 
 # 
-## algorithm.hyperparam: resampling, preproc.hyperparam: stepwise optimization, error: resampling
-procedure = "preproc.hp.steopt_algo.hp.tune_error.resampling"
+## learner.hyperparam: resampling, preproc.hyperparam: stepwise optimization, error: resampling
+procedure = "preproc.hp.steopt_learner.hp.tune_error.resampling"
 
-## algorithm.hyperparam: resampling, preproc.hyperparam: stepwise optimization, error: apparent
-procedure = "preproc.hp.steopt_algo.hp.tune_error.apparent"
+## learner.hyperparam: resampling, preproc.hyperparam: stepwise optimization, error: apparent
+procedure = "preproc.hp.steopt_learner.hp.tune_error.apparent"
 
-## algorithm.hyperparam: resampling, preproc.hyperparam: nested resampling
-procedure = "preproc.hp.steopt_algo.hp.tune_error.nested_resampling"
+## learner.hyperparam: resampling, preproc.hyperparam: nested resampling
+procedure = "preproc.hp.steopt_learner.hp.tune_error.nested_resampling"
 
-## algorithm.hyperparam: resampling, preproc.hyperparam: resampling
-procedure = "preproc.hp.tune_algo.hp.tune"
+## learner.hyperparam: resampling, preproc.hyperparam: resampling
+procedure = "preproc.hp.tune_learner.hp.tune"
 
-## algorithm.hyperparam: default, preproc.hyperparam: resampling
-procedure = "preproc.hp.default_algo.hp.tune"
+## learner.hyperparam: default, preproc.hyperparam: resampling
+procedure = "preproc.hp.default_learner.hp.tune"
 Sys.setenv(OMP_NUM_THREADS="1")
 t1 = get_tree_and_error_fct(procedure = procedure,
                             preproc_hp_searchspace = preproc_hp_searchspace,
