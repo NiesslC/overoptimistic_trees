@@ -1,4 +1,6 @@
-
+selector_help = function(task) {
+  task$feature_names[grepl("age|ipos|age|cogn|akps|companion_id|team_id", task$feature_names)]
+}
 
 
 preprocess_drop_iposca_fct = function(option){
@@ -103,7 +105,7 @@ preprocess_target_getcorr_fct = function(data, option){
   means_firstday = data %>%
     mutate(number_phase = ifelse(grp == 0, "phase_1", "phase_geq2")) %>%
     group_by(setting, team_id, number_phase) %>% # calculate mean separately for phase no. = 1 vs. >= 2
-    summarise(mean_sum_target_day_1 = mean(.data[[sum_target_day_1]])) %>% 
+    summarise(mean_sum_target_day_1 = mean(.data[[sum_target_day_1]]), .groups = "drop_last") %>% 
     ungroup()
   correction_factors = means_firstday %>% 
     spread(number_phase, mean_sum_target_day_1) %>%
