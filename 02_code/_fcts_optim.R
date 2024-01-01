@@ -6,15 +6,15 @@ get_tree_and_error_fct = function(procedure,
                                       rpart_hp,
                                       tuning_parameters){
   
-  if(procedure %in% c("preproc.hp.steopt_algo.hp.tune_error.resampling",
-                      "preproc.hp.steopt_algo.hp.tune_error.apparent",
-                      "preproc.hp.steopt_algo.hp.tune_error.nested_resampling")){
+  if(procedure %in% c("preproc.hp.steopt_learner.hp.tune_error.resampling",
+                      "preproc.hp.steopt_learner.hp.tune_error.apparent",
+                      "preproc.hp.steopt_learner.hp.tune_error.nested_resampling")){
     
-    if(procedure == "preproc.hp.steopt_algo.hp.tune_error.resampling"){
+    if(procedure == "preproc.hp.steopt_learner.hp.tune_error.resampling"){
       error_of_interest = "resampling_error"
-    } else if(procedure == "preproc.hp.steopt_algo.hp.tune_error.apparent"){
+    } else if(procedure == "preproc.hp.steopt_learner.hp.tune_error.apparent"){
       error_of_interest = "apparent_error"
-    } else if(procedure == "preproc.hp.steopt_algo.hp.tune_error.nested_resampling"){
+    } else if(procedure == "preproc.hp.steopt_learner.hp.tune_error.nested_resampling"){
       error_of_interest = "nested_resampling_error"
     }
     
@@ -26,7 +26,7 @@ get_tree_and_error_fct = function(procedure,
                               "preproc.feature.age" = preproc_hp_searchspace$preproc.feature.age[[1]],
                               "preproc.feature.akps" = preproc_hp_searchspace$preproc.feature.akps[[1]])
     
-    # For each preprocessing operation, generate a tree with each option where the algorithm hyperparameters 
+    # For each preprocessing operation, generate a tree with each option where the learner hyperparameters 
     # are tuned using resampling    
     tree_results_list = vector("list", length = length(preproc_hp_stepopt_order))
     for(i in 1:length(preproc_hp_stepopt_order)){
@@ -53,7 +53,7 @@ get_tree_and_error_fct = function(procedure,
       # Get stepwise optimized preproc hp
       final_preproc_hp = current_preproc_hp 
       
-      # Generate final tree by tuning algorithm hp with step-optimized preprocessing hp ----
+      # Generate final tree by tuning learner hp with step-optimized preprocessing hp ----
       learner = lrn("regr.rpart", 
                     maxdepth = rpart_hp$fixed$maxdepth, 
                     xval = rpart_hp$fixed$xval, 
@@ -92,7 +92,7 @@ get_tree_and_error_fct = function(procedure,
     return(list("tree_results_list" = tree_results_list, "final_tree" = final_tree))
   }
   
-  else if(procedure %in% c("preproc.hp.default_algo.hp.tune", "preproc.hp.tune_algo.hp.tune")) {
+  else if(procedure %in% c("preproc.hp.default_learner.hp.tune", "preproc.hp.tune_learner.hp.tune")) {
     # Generate learner + preprocessing pipeline ----
     learner = lrn("regr.rpart", 
                   maxdepth = rpart_hp$fixed$maxdepth, 
@@ -106,16 +106,16 @@ get_tree_and_error_fct = function(procedure,
                                  po("preproc.feature.akps") %>>% 
                                  po("fixfactors") %>>%
                                 learner)
-    if(procedure == "preproc.hp.default_algo.hp.tune"){
-      # Set parameter space only for algorithm (preprocessing hp = default) ----
+    if(procedure == "preproc.hp.default_learner.hp.tune"){
+      # Set parameter space only for learner (preprocessing hp = default) ----
       search_space = ps(
         regr.rpart.cp = p_dbl(lower = rpart_hp$tuning$cp_lower, 
                               upper = rpart_hp$tuning$cp_upper),
         regr.rpart.minbucket = p_int(lower = rpart_hp$tuning$minbucket_lower, 
                                      upper = rpart_hp$tuning$minbucket_upper)
       )
-    } else if(procedure == "preproc.hp.tune_algo.hp.tune"){
-      # Set parameter space for algorithm and preprocessing hp ----
+    } else if(procedure == "preproc.hp.tune_learner.hp.tune"){
+      # Set parameter space for learner and preprocessing hp ----
       search_space = ps(
         regr.rpart.cp = p_dbl(lower = rpart_hp$tuning$cp_lower, 
                               upper = rpart_hp$tuning$cp_upper),
@@ -179,7 +179,7 @@ get_stepopt_preproc_hp_fct = function(current_preproc_hp,
                                                      preproc_hp_searchspace = preproc_hp_searchspace,
                                                      preproc_of_interest = preproc_of_interest)
   
-  # Generate learner incl. preprocessing pipeline with set preprocessing parameters (fixed for algorithm hp tuning) ----
+  # Generate learner incl. preprocessing pipeline with set preprocessing parameters (fixed for learner hp tuning) ----
   learner = lrn("regr.rpart", 
                 maxdepth = rpart_hp$fixed$maxdepth, 
                 xval = rpart_hp$fixed$xval, 
@@ -195,7 +195,7 @@ get_stepopt_preproc_hp_fct = function(current_preproc_hp,
                  learner))
   # #graph$plot()
   
-  # Set parameter space for algorithm ----
+  # Set parameter space for learner ----
   search_space = ps(
     regr.rpart.cp = p_dbl(lower = rpart_hp$tuning$cp_lower, 
                           upper = rpart_hp$tuning$cp_upper),
