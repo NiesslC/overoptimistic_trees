@@ -322,7 +322,7 @@ save(data_phaselevel, file = "./01_data/data_phaselevel.RData")
 
 
 # CHECKS 
-# No NAs (except for cost/minutes_geq2) and no "cannot assess"/-99 values
+# No NAs (except for cost/minutes_geq2) and no "cannot assess"/-99 values (except for ipos)
 which(colSums(is.na(data_phaselevel))>0) # ok 
 which(colSums(data_phaselevel == "cannot assess")>0) # ok
 which(colSums(data_phaselevel == -99)>0) # ok
