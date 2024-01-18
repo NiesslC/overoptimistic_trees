@@ -1,4 +1,4 @@
-get_tree_and_error_fct = function(id_train, param_setting,
+optim_fct = function(id_train, param_setting,
                                   learner_name, learners_default, learners_hp_searchspace_default,
                                   preproc_default, preproc_hp_searchspace_default, preproc_hp_stepopt_order,
                                   procedure, tuning_parameters){
@@ -68,14 +68,14 @@ get_tree_and_error_fct = function(procedure,
       
     }
     # Get final tree incl. i) apparent error ii) resampling error and iii) test set error 
-    final_tree = get_tuned_hp_fct(task = task,
+    final_tree = resampling_fct(task = task,
                                   data_test = data_test,
                                   graph_learner = graph_learner, 
                                   search_space = search_space,
                                   tuning_parameters = tuning_parameters)
     
     # Add nested resampling error 
-    final_tree$nested_resampling_error = get_nested_resampling_error_fct(task = task, 
+    final_tree$nested_resampling_error = nested_resampling_fct(task = task, 
                                                                          graph_learner = graph_learner, 
                                                                          search_space = search_space,
                                                                          tuning_parameters = tuning_parameters)
@@ -135,7 +135,7 @@ get_tree_and_error_fct = function(procedure,
       # only need to tune learner hps one last time and evaluate on test data
       search_space = learner_hp_searchspace$clone(deep = TRUE)
 
-      final_tree = get_tuned_hp_fct(task = task,
+      final_tree = resampling_fct(task = task,
                                     data_test = data_test,
                                     graph_learner = graph_learner, 
                                     search_space = search_space,
@@ -215,7 +215,7 @@ get_tree_and_error_fct = function(procedure,
 
 
 # function that returns a nested list containing the values_to_evaluate where across the lists, only one preprocessing hp varies
-generate_toeval_preproc_hp_fct = function(graph_learner, 
+get_toeval_preproc_hp_fct = function(graph_learner, 
                                           preproc_hp_searchspace, 
                                           preproc_of_interest){
   # Get possible options for current preprocessing hp of interest
@@ -247,7 +247,7 @@ get_stepopt_preproc_hp_fct = function(preproc_of_interest,
   
   
   # For each preprocessing operation, generate list of possible hp values that will be evaluated 
-  toeval_preproc_hp = generate_toeval_preproc_hp_fct(graph_learner = graph_learner,
+  toeval_preproc_hp = get_toeval_preproc_hp_fct(graph_learner = graph_learner,
                                                      preproc_hp_searchspace = preproc_hp_searchspace,
                                                      preproc_of_interest = preproc_of_interest)
   
@@ -260,7 +260,7 @@ get_stepopt_preproc_hp_fct = function(preproc_of_interest,
     tree_results = toeval_preproc_hp %>%
       purrr::map(.f = function(x) {
         graph_learner$param_set$values[names_preproc] = x 
-        results = get_tuned_hp_fct(task = task,
+        results = resampling_fct(task = task,
                                    data_test = data_test,
                                    graph_learner = graph_learner, 
                                    search_space = search_space,
@@ -278,7 +278,7 @@ get_stepopt_preproc_hp_fct = function(preproc_of_interest,
     tree_results = toeval_preproc_hp %>%
       purrr::map(.f = function(x) {
         graph_learner$param_set$values[names_preproc] = x 
-        results = get_nested_resampling_error_fct(task = task,
+        results = nested_resampling_fct(task = task,
                                                   graph_learner = graph_learner, 
                                                   search_space = search_space,
                                                   tuning_parameters = tuning_parameters)
