@@ -1,4 +1,4 @@
-get_tuned_hp_fct = function(task,
+resampling_fct = function(task,
                         data_test,
                         graph_learner, 
                         search_space,
@@ -46,7 +46,7 @@ get_tuned_hp_fct = function(task,
 
 
 
-get_nested_resampling_error_fct = function(task,
+nested_resampling_fct = function(task,
                                            graph_learner, 
                                            search_space,
                                            tuning_parameters){
