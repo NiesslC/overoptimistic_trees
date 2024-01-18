@@ -1,11 +1,11 @@
-selector_help = function(task) {
-  task$feature_names[grepl("age|ipos|age|cogn|akps|companion_id|team_id", task$feature_names)]
-}
+# selector_help = function(task) {
+#   task$feature_names[grepl("age|ipos|age|cogn|akps|companion_id|team_id", task$feature_names)]
+# }
 
 
 preprocess_drop_iposca_fct = function(option){
-  ## Option A-H ----
-  list_options = as.list(17:10) 
+  ## Option A-D ----
+  list_options = as.list(seq(17,10,by = -2)) 
   names(list_options) = LETTERS[1:length(list_options)]
   threshold = list_options[[option]]
   return(threshold)
@@ -158,7 +158,7 @@ preprocess_feature_akps_fct = function(data, option){
   return(data)
 }
 
-
+# important that all newly generated variables start with ipos
 preprocess_feature_ipos_fct = function(data, option){
   if(option == "A"){
     # Option A ----
@@ -172,7 +172,7 @@ preprocess_feature_ipos_fct = function(data, option){
       mutate(across(starts_with("ipos"), ~ as.integer(.)-1)) %>% 
       mutate(ipos_score = rowSums(across(starts_with("ipos")), na.rm =TRUE)) %>% 
       select(-setdiff(starts_with("ipos"), contains("ipos_score"))) # remove unused ipos vars
-    feature_names = "ipos_score"
+    #feature_names = "ipos_score"
   } else if(option == "B"){
     # Option B ----
     # IPOS score similar to option A except that two separate scores are created, one for the 10
@@ -193,7 +193,7 @@ preprocess_feature_ipos_fct = function(data, option){
                                                    "ipos_sharing_feelings","ipos_information",
                                                    "ipos_practical_matters")), na.rm =TRUE)) %>% 
       select(-setdiff(starts_with("ipos"), contains("ipos_score"))) # remove unused ipos vars
-    feature_names = c("ipos_score_phys", "ipos_score_nonphys")
+    #feature_names = c("ipos_score_phys", "ipos_score_nonphys")
   } else if(option == "C"){
     # Option C ----
     # IPOS score counting how many IPOS variables take the most extreme or second most extreme 
@@ -205,7 +205,7 @@ preprocess_feature_ipos_fct = function(data, option){
       mutate(ipos_score_extreme = rowSums(across(starts_with("ipos")))) %>% 
       select(-setdiff(starts_with("ipos"), contains("ipos_score_extreme"))) # remove unused ipos vars
     
-    feature_names = "ipos_score_extreme"
+    #feature_names = "ipos_score_extreme"
     
   } else if(option == "D"){
     # Option D ----
@@ -223,7 +223,7 @@ preprocess_feature_ipos_fct = function(data, option){
       mutate(across(c("ipos_pain","ipos_shortness_breath"), ~ factor(., ordered = TRUE))) %>%
       select(-setdiff(starts_with("ipos"), ends_with(c("ipos_score_extreme_exclpb","ipos_pain","ipos_shortness_breath")))) # remove unused ipos vars
     
-    feature_names = c("ipos_score_extreme_exclpb","ipos_pain","ipos_shortness_breath")
+    #feature_names = c("ipos_score_extreme_exclpb","ipos_pain","ipos_shortness_breath")
   } else if(option == "E"){
     
     # Option E ----
