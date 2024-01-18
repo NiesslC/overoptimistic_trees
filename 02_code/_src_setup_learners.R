@@ -20,7 +20,7 @@ alpha_lower = 0.01
 alpha_upper = 0.1
 mincriterion_upper = 1-alpha_lower
 mincriterion_lower = 1-alpha_upper
-exclude.from.partitioning.vars = c("companion_id", "team_id")
+include.partitioning.vars_expr = "palliativephase|ipos|age|cogn|akps"
 maxdepth = 4
 
 tunable_hp_ps.cp_minbucket = paradox::ps(
@@ -42,7 +42,7 @@ tunable_hp_ps.mincriterion_minbucket = paradox::ps(
 ## lrn_rpart
 lrn_rpart.hp = list(
   fixed = list( 
-    exclude.from.partitioning.vars = exclude.from.partitioning.vars,
+    include.partitioning.vars_expr = include.partitioning.vars_expr,
     maxdepth = maxdepth,
     xval = 0),  
   tunable = tunable_hp_ps.cp_minbucket$clone()
@@ -50,7 +50,7 @@ lrn_rpart.hp = list(
 ## lrn_ctree
 lrn_ctree.hp = list(
   fixed = list( 
-    exclude.from.partitioning.vars = exclude.from.partitioning.vars,
+    include.partitioning.vars_expr = include.partitioning.vars_expr,
     maxdepth = maxdepth),
   tunable = tunable_hp_ps.alpha_minbucket$clone()
 )
@@ -59,7 +59,7 @@ lrn_ctree.hp = list(
 lrn_glmertree_if.hp = list(
   fixed = list( 
     formula.random = "(1|team_id/companion_id)",
-    exclude.from.partitioning.vars = exclude.from.partitioning.vars,
+    include.partitioning.vars_expr = include.partitioning.vars_expr,
     re.form = NA,
     maxdepth = maxdepth),
   tunable = tunable_hp_ps.alpha_minbucket$clone()
@@ -78,7 +78,7 @@ lrn_glmertree_f.hp$tunable = tunable_hp_ps.alpha_minbucket$clone()
 ## lrn_reemtree_if
 lrn_reemtree_if.hp = list(
   fixed = list( 
-    exclude.from.partitioning.vars = exclude.from.partitioning.vars,
+    include.partitioning.vars_expr = include.partitioning.vars_expr,
     random = ~1|team_id/companion_id,
     grouping = "", 
     EstimateRandomEffects = FALSE, 
@@ -101,7 +101,7 @@ lrn_reemtree_f.hp$tunable = tunable_hp_ps.cp_minbucket$clone()
 ## lrn_reemctree_if
 lrn_reemctree_if.hp = list(
   fixed = list( 
-    exclude.from.partitioning.vars = exclude.from.partitioning.vars,
+    include.partitioning.vars_expr = include.partitioning.vars_expr,
     random = ~1|team_id/companion_id,
     maxdepth = maxdepth),
   tunable = tunable_hp_ps.mincriterion_minbucket$clone()
@@ -134,9 +134,9 @@ lrn_reemctree_f$param_set$values = lrn_reemctree_f.hp$fixed
 
 
 # Generate list of learners with assigned fixed hps ----
-learners = list(lrn_rpart,lrn_ctree,lrn_glmertree_if,lrn_glmertree_i,lrn_glmertree_f, lrn_reemtree_if,
+learners_default = list(lrn_rpart,lrn_ctree,lrn_glmertree_if,lrn_glmertree_i,lrn_glmertree_f, lrn_reemtree_if,
                      lrn_reemtree_i,lrn_reemtree_f,lrn_reemctree_if,lrn_reemctree_i,lrn_reemctree_f)
-names(learners) = c("lrn_rpart","lrn_ctree","lrn_glmertree_if","lrn_glmertree_i","lrn_glmertree_f", "lrn_reemtree_if",
+names(learners_default) = c("lrn_rpart","lrn_ctree","lrn_glmertree_if","lrn_glmertree_i","lrn_glmertree_f", "lrn_reemtree_if",
                          "lrn_reemtree_i","lrn_reemtree_f","lrn_reemctree_if","lrn_reemctree_i","lrn_reemctree_f")
 
 # Generate list of search spaces for tunable hps ----
@@ -152,15 +152,15 @@ lrn_reemctree_if.hp$tunable$set_id = "lrn_reemctree_if"
 lrn_reemctree_i.hp$tunable$set_id = "lrn_reemctree_i"
 lrn_reemctree_f.hp$tunable$set_id = "lrn_reemctree_f"
 
-learners_hp_searchspace = paste0(names(learners),".hp") %>% 
+learners_hp_searchspace_default = paste0(names(learners_default),".hp") %>% 
   purrr::map(~ ParamSetCollection$new(list(get(.x)$tunable)))
-
+names(learners_hp_searchspace_default) = names(learners_default)
 
 # Remove unnecessary objects ----
 rm(# parameters 
   "tunable_hp_ps.alpha_minbucket","tunable_hp_ps.cp_minbucket","tunable_hp_ps.mincriterion_minbucket",
    "minbucket_lower","minbucket_upper","mincriterion_lower","mincriterion_upper",
-   "alpha_lower","alpha_upper","cp_lower","cp_upper", "exclude.from.partitioning.vars","maxdepth",
+   "alpha_lower","alpha_upper","cp_lower","cp_upper", "include.partitioning.vars_expr","maxdepth",
    # hp lists
    "lrn_ctree.hp","lrn_glmertree_f.hp","lrn_glmertree_i.hp","lrn_glmertree_if.hp","lrn_reemctree_f.hp","lrn_reemctree_i.hp",
    "lrn_reemctree_if.hp","lrn_reemtree_f.hp","lrn_reemtree_i.hp","lrn_reemtree_if.hp","lrn_rpart.hp",
@@ -169,26 +169,26 @@ rm(# parameters
    "lrn_reemctree_if","lrn_reemtree_f","lrn_reemtree_i","lrn_reemtree_if","lrn_rpart")
 
 #################################################################
-search_space1 = ps(
-  regr.rpart.cp = p_dbl(lower = 4, 
-                        upper = 5)
-)
-search_space2 = ps(
-  regr.rpart.minbucket = p_int(lower = 3, 
-                               upper = 3)
-)
-search_space = ps(
-  regr.rpart.minbucket = p_int(lower = 3, 
-                               upper = 3),
-  regr.rpart.cp = p_dbl(lower = 4, 
-                        upper = 5)
-)
-search_space2$add(search_space1)
-
-names(search_space1$lower)
-search_space$lower
-search_space$assert_values()
-
-
-all.equal(tuner_params,
-search_space)
+# search_space1 = ps(
+#   regr.rpart.cp = p_dbl(lower = 4, 
+#                         upper = 5)
+# )
+# search_space2 = ps(
+#   regr.rpart.minbucket = p_int(lower = 3, 
+#                                upper = 3)
+# )
+# search_space = ps(
+#   regr.rpart.minbucket = p_int(lower = 3, 
+#                                upper = 3),
+#   regr.rpart.cp = p_dbl(lower = 4, 
+#                         upper = 5)
+# )
+# search_space2$add(search_space1)
+# 
+# names(search_space1$lower)
+# search_space$lower
+# search_space$assert_values()
+# 
+# 
+# all.equal(tuner_params,
+# search_space)
