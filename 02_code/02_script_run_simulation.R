@@ -25,162 +25,105 @@ source("./02_code/_src_add_mlrlearners_helperfcts.R")
 
 # Set up learners (= algorithms) with corresponding hps --------------------------------------------
 source("./02_code/_src_setup_learners.R")
-# -> learners and learners_hp_searchspace
+# -> returned objects: learners_default and learners_hp_searchspace_default
 
 # Set up preprocessing pipeline with corresponding hps ---------------------------------------------
 
 # Preprocessing pipeline
 # (Note: in the pipeline %>>%, preproc.target need to be before preproc.drop.targetout and
 #  preproc.drop.iposca before preproc.feature.ipos)
-preproc_pipeline = po("preproc.target") %>>%
+preproc_default = po("preproc.target") %>>%
   po("preproc.drop.targetout") %>>%
   po("preproc.drop.iposca") %>>%
   po("preproc.feature.ipos") %>>% 
   po("preproc.feature.age") %>>% 
-  po("preproc.feature.akps") %>>% 
-  po("select", selector = selector_help, id = "select.features") %>>%
-  po("fixfactors") 
+  po("preproc.feature.akps")#%>>% 
+#po("fixfactors", affect_columns = selector_grep("palliativephase|ipos|age|cogn|akps"))  
+# (affect columns is important for fixfactors because otherwise new companion_ids in predict would be removed)
 
 # Search space preprocessing hps
-preproc_hp_searchspace = list("preproc.target" = c("A", "B", "C"),
-                      "preproc.drop.targetout" = c("A", "B", "C", "D"),
-                      "preproc.drop.iposca" = c("A", "B", "C", "D", "E", "F", "G", "H"),
-                      "preproc.feature.ipos" = c("A", "B", "C", "D", "E"),
-                      "preproc.feature.age" = c("A", "B"),
-                      "preproc.feature.akps" = c("A", "B"))
+preproc_hp_searchspace_default = ps(
+  preproc.target.option = p_fct(c("A", "B", "C")),
+  preproc.drop.targetout.option = p_fct(c("A", "B", "C", "D")),
+  preproc.drop.iposca.option = p_fct(c("A", "B", "C", "D")),
+  preproc.feature.ipos.option = p_fct(c("A", "B", "C", "D", "E")),
+  preproc.feature.age.option = p_fct(c("A", "B")),
+  preproc.feature.akps.option = p_fct(c("A", "B"))
+) 
 
 # Order for stepwise optimization 
 preproc_hp_stepopt_order = c("preproc.target", "preproc.feature.ipos", "preproc.feature.age", "preproc.feature.akps",
                              "preproc.drop.targetout", "preproc.drop.iposca")
-
+preproc_hp_stepopt_order = paste0(preproc_hp_stepopt_order, ".option") 
+# (add ".option" because will access preproc_hp_searchspace with this vector)
 
 # Simulation parameters  ---------------------------------------------------------------------------
 # Number of simulated train/test datasets
 nrep = 3 # 50? 100? 
 
-# Considered setting
-param_setting = "sapv"
-
-# Evaluation criterion
-eval_criterion = "regr.rsq" 
-
-# Raw features names (as they are in the loaded dataset)
-feature_names_raw = c("age","ipos_pain","ipos_shortness_breath","ipos_weakness","ipos_nausea",          
-                     "ipos_vomiting","ipos_poor_appetite","ipos_constipation","ipos_sore_dry_mouth",
-                     "ipos_drowsiness","ipos_poor_mobility","ipos_patient_anxiety","ipos_family_anxiety",
-                     "ipos_depression","ipos_peace","ipos_sharing_feelings","ipos_information",
-                     "ipos_practical_matters","cogn_confusion","cogn_agitation","akps" )
+# Possible settings
+settings = c("sapv", "pmd", "station")
 
 # Tuning parameters 
 tuning_parameters = list(
-  n_evals = 5, # 100 
-  inner_folds = 3, # 5 
-  outer_folds = 3, # 5?
+  eval_criterion = "regr.rsq", # evaluation criterion
+  n_evals = 3, # 5, # 100,
+  folds_cv = 3, #
+  inner_folds_nestedcv = 3, # 5 
+  outer_folds_nestedcv = 3, # 5?
   outer_repeats = 1, #3 ? 
-  resolution = 10 #  50
+  resolution = 10, #  50
+  seed_resampling = 1705410730,
+  seed_nestedresampling = 1705419930
 )
 
 # Optimization procedures 
-
-#TO DOOOOO
+procedures = c(
+  ## learner.hyperparam: default, preproc.hyperparam: resampling, error: apparent+resampling+nested
+  "learner.hp.tune_preproc.hp.default",
+  ## learner.hyperparam: resampling, preproc.hyperparam: stepwise optimization, error: apparent
+  "learner.hp.tune_preproc.hp.steopt_error.apparent",
+  ## learner.hyperparam: resampling, preproc.hyperparam: stepwise optimization, error: resampling
+  "learner.hp.tune_preproc.hp.steopt_error.resampling",
+  ## learner.hyperparam: resampling, preproc.hyperparam: stepwise optimization, error: nested resampling
+  "learner.hp.tune_preproc.hp.steopt_error.nested_resampling",
+  ## learner.hyperparam: resampling, preproc.hyperparam: resampling, error: apparent+resampling+nested
+  "learner.hp.tune_preproc.hp.tune",
+  ## learner.hyperparam: manually select value most prone to overfitting, preproc: try all combinations, error: apparent
+  "learner.hp.maxoverfit_preproc.hp.allcombinations_error.apparent"
+)
 
 
 # Simulate random allocation -----------------------------------------------------------------------
 set.seed(1698072152)
 id_train_list = 1:nrep %>% map(function(x) data_phaselevel %>% distinct(companion_id,.keep_all = TRUE) %>%  
-  group_by(team_id) %>% # split within each team_id
-  slice_sample(prop = 0.5) %>% .$companion_id)
+                                 group_by(team_id) %>% # split within each team_id
+                                 slice_sample(prop = 0.5) %>% .$companion_id)
+save(id_train_list, file = "./03_results/rdata/id_train_list.RData")
 
-id_train = id_train_list[[1]] ###todooo
 # Run optimization ---------------------------------------------------------------------------------
-# (for all nrep train/test allocations)
 
-# 1. Train/test data
-data_train = data_phaselevel %>% filter((setting == param_setting) &
-                                       (companion_id %in% id_train))
-data_test = data_phaselevel %>% filter((setting == param_setting) &
-                                          !(companion_id %in% id_train))
-stopifnot(length(intersect(data_train$companion_id, data_test$companion_id)) ==0) # make sure no ids are in both datasets
-
-# 2. Specify task
-task = as_task_regr(data_train, target = "targetvar")
-# specify companion_id as grouping variable bc observations from same id should not be split when resampling
-# = group by id 
-task$col_roles$group = "companion_id"
-# = remove id from features
-task$col_roles$feature = setdiff(task$col_roles$feature, "companion_id")
-rm(data_train)
-
-# only select possible targets, features, and id because per default the learner uses all variables in data set as features 
-# TODOO!!!!!############
-
-# 3. Generate trees and get associated errors 
-
-# 
-## learner.hyperparam: resampling, preproc.hyperparam: stepwise optimization, error: resampling
-procedure = "preproc.hp.steopt_learner.hp.tune_error.resampling"
-
-## learner.hyperparam: resampling, preproc.hyperparam: stepwise optimization, error: apparent
-procedure = "preproc.hp.steopt_learner.hp.tune_error.apparent"
-
-## learner.hyperparam: resampling, preproc.hyperparam: nested resampling
-procedure = "preproc.hp.steopt_learner.hp.tune_error.nested_resampling"
-
-## learner.hyperparam: resampling, preproc.hyperparam: resampling
-procedure = "preproc.hp.tune_learner.hp.tune"
-
-## learner.hyperparam: default, preproc.hyperparam: resampling
-procedure = "preproc.hp.default_learner.hp.tune"
-Sys.setenv(OMP_NUM_THREADS="1")
-t1 = get_tree_and_error_fct(procedure = procedure,
-                            preproc_hp_searchspace = preproc_hp_searchspace,
-                           task = task,
-                           data_test = data_test, 
-                           eval_criterion = eval_criterion, 
-                           rpart_hp = rpart_hp,
-                           tuning_parameters = tuning_parameters)
-
-# 4. Extract errors [(i) reported error and (ii) test set error]
-
-# next 
-####mlr3 aussage bzgl. optimistic algorithm (now really needed) nochmal checken
-
-# al procedure
-# evtl. unnötige errors löschen
-
-# schlimm dass nicht gleiche splits bei a)tunen (falls mehrere algos) und b) bei nested resampling stepwise
-
-###########################################################################
-
-#### pipelines kurzer test mit informeller mini-simulation!!!
+#### CURRENT ###
+id_train = id_train_list[[1]]
+learner_name = "lrn_glmertree_if"
+procedure = "learner.hp.tune_preproc.hp.steopt_error.apparent"#"preproc.hp.tune_learner.hp.tune"
+param_setting = settings[1]
+#########
 
 
-###########################
-# add learner_graph$model$regr.rpart$train_task info -> Fehler: The backend of Task 'data_train' has been removed. Set `store_backends`
-#                                                      to `TRUE` during model fitting to conserve it.
-#formula checken rpart!
-# falls mehrere learner: schlimm wenn auf unterschiedlichen splits getuned?
-# seeeeed!!!!!!!!!!!
-# - verhalten der algorithmen bei missing values (auch bzgl. fixfactors)
-# - schauen dass bei target wirklich nicht benötigte target vars weggelassen in task
-# pipelines final entscheiden
-# feature names explizit bei task angeben, müssen noch variablen ausgeschlossen werden?
-#   evlt preproc die alle removed außer feature target und grouping
-# evtl. invoke packages checkn
-# alle functionen in learner_helpers benötigt?
-###
-# - irgendwo sicherstellen dass in data_train und data_test dieselben levels vorhanden sind
-# ordinale vars nicht vergessen
-# -fct descriptions
-# - document id_train irgendwo
-# - welche variables noch entfernt außer dry mouth
-# - setting auswahl parameter
-# - check dass alle die sein sollen ordinal 
-# - evtl auch different sample size for simulation
-# - falls extern kann keine correctur verwendet werden
-# - man könnte manche hyperparameter auch stetig machen (zB outlier removal)
-# - reihenfolge der pipelines beachten (zb select ipos_ kann probleme machen wenn nach transf. angewendet)
-#####################################################
+
+
+
+# To Do: -------------------------------------------------------------------------------------------
+# - Function descriptions
+# - Implement procedure where learner choice is also tunable 
+# - Do we need all functions in learner_helpers benötigt?
+# - Add info on R package versions (also for those called when using invoke()?)
+# - glmertree_if singular boundary warning, other algorithms also affected? store warnings somewhere?
+# - Check behavior of learners when new (ordered) factors in test data 
+#   -> need fixfactors pipeop? (but currently throws error)
+#   -> behavior of learners when missing values (resulting from fixfactors)
+
 
 # Note on po("fixfactors")
 # "Fixes factors of type factor, ordered: Makes sure the factor levels during prediction are the same
@@ -188,5 +131,3 @@ t1 = get_tree_and_error_fct(procedure = procedure,
 #  Note this may introduce missing values during prediction if unseen factor levels are found."
 # -> in case of rpart, this does not lead to missing values during prediction; instead, rpart
 #    basically interpolates or extrapolates; it seems as if the surrogate splits are not used (?)
-
-
