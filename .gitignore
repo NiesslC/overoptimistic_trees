@@ -3,4 +3,6 @@
 .RData
 .Ruserdata
 01_data
-02_results
+02_code/sandboxes/*
+03_results/rdata/*
+!03_results/rdata/id_train_list.RData
