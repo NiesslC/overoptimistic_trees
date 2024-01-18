@@ -9,7 +9,7 @@ LearnerRegrRpart = R6Class("LearnerRegrRpart",
                              initialize = function() {
                                ps = ps(
                                  #formula = p_uty(tags = "train"),
-                                 exclude.from.partitioning.vars = p_uty(tags = "train"), # csauer
+                                 include.partitioning.vars_expr = p_uty(tags = "train"), # csauer
                                  minsplit = p_int(lower = 1L, default = 20L, tags = "train"),
                                  minbucket = p_int(lower = 1L, tags = "train"),
                                  cp = p_dbl(lower = 0, upper = 1, default = 0.01, tags = "train"),
@@ -47,12 +47,12 @@ LearnerRegrRpart = R6Class("LearnerRegrRpart",
                              
                                ## specify formula 
                                #formula = task$formula()
-                               partitioning.vars = setdiff(task$feature_names, pars$exclude.from.partitioning.vars)
+                               partitioning.vars = task$feature_names[grepl(pars$include.partitioning.vars_expr, task$feature_names)]
                                formula = as.formula(paste0(task$target_names," ~ ", 
                                                            paste0(partitioning.vars, collapse = " + ")))
                                pars = insert_named(pars, list(formula = formula))
-                               # remove formula.random and exclude.from.partitioning.vars from pars
-                               pars = remove_named(pars, "exclude.from.partitioning.vars")
+                               # remove formula.random and include.partitioning.vars_expr from pars
+                               pars = remove_named(pars, "include.partitioning.vars_expr")
                                
                                
                                
@@ -94,7 +94,7 @@ LearnerRegrCTree = R6Class("LearnerRegrCTree",
                              initialize = function() {
                                ps = ps(
                                  #formula = p_uty(tags = "train"),
-                                 exclude.from.partitioning.vars = p_uty(tags = "train"), # csauer
+                                 include.partitioning.vars_expr = p_uty(tags = "train"), # csauer
                                  teststat = p_fct(levels = c("quadratic", "maximum"),
                                                   default = "quadratic", tags = "train"),
                                  splitstat = p_fct(levels = c("quadratic", "maximum"),
@@ -172,12 +172,12 @@ LearnerRegrCTree = R6Class("LearnerRegrCTree",
                                pars$pargs = invoke(mvtnorm::GenzBretz, pars_pargs)
                                
                                ## specify formula 
-                               partitioning.vars = setdiff(task$feature_names, pars$exclude.from.partitioning.vars)
+                               partitioning.vars = task$feature_names[grepl(pars$include.partitioning.vars_expr, task$feature_names)]
                                formula = as.formula(paste0(task$target_names," ~ ", 
                                                            paste0(partitioning.vars, collapse = " + ")))
                                pars = insert_named(pars, list(formula = formula))
-                               # remove formula.random and exclude.from.partitioning.vars from pars
-                               pars = remove_named(pars, "exclude.from.partitioning.vars")
+                               # remove formula.random and include.partitioning.vars_expr from pars
+                               pars = remove_named(pars, "include.partitioning.vars_expr")
                                
                                invoke(partykit::ctree, #formula = task$formula(),
                                       data = task$data(), .args = pars)
@@ -211,7 +211,7 @@ LearnerRegrGlmertree = R6Class("LearnerRegrGlmertree",
                                    ps = ps(
                                      #formula = p_uty(tags = "train"),
                                      formula.random = p_uty(tags = "train"), # csauer
-                                     exclude.from.partitioning.vars = p_uty(tags = "train"), # csauer
+                                     include.partitioning.vars_expr = p_uty(tags = "train"), # csauer
                                      maxit = p_int(lower = 1L, default = 100L, tags = "train"),
                                      maxdepth = p_int(lower = 1L, tags = "train"),
                                      minsize = p_int(lower = 1L, tags = "train"),
@@ -258,14 +258,14 @@ LearnerRegrGlmertree = R6Class("LearnerRegrGlmertree",
                                    # and partitioning variables, respectively)
                                    
                                    # formula = task$formula()
-                                   partitioning.vars = setdiff(task$feature_names, pars$exclude.from.partitioning.vars)
+                                   partitioning.vars = task$feature_names[grepl(pars$include.partitioning.vars_expr, task$feature_names)]
                                    formula = as.formula(paste0(task$target_names, " ~ 1 | ",
                                                                pars$formula.random, " | ", 
                                                                paste0(partitioning.vars, collapse = " + ")))
                                    
                                    pars = insert_named(pars, list(formula = formula))
-                                   # remove formula.random and exclude.from.partitioning.vars from pars
-                                   pars = remove_named(pars, c("formula.random", "exclude.from.partitioning.vars"))
+                                   # remove formula.random and include.partitioning.vars_expr from pars
+                                   pars = remove_named(pars, c("formula.random", "include.partitioning.vars_expr"))
                                    
                                    
                                    ## use the mlr3misc::invoke function (it's similar to do.call()) 
@@ -304,7 +304,7 @@ LearnerRegrReemtree = R6Class("LearnerRegrReemtree",
                                 initialize = function() {
                                   ps = ps(
                                    #formula = p_uty(tags = "train"),
-                                    exclude.from.partitioning.vars = p_uty(tags = "train"), # csauer
+                                    include.partitioning.vars_expr = p_uty(tags = "train"), # csauer
                                     random = p_uty(tags = "train"),
                                     MaxIterations = p_int(lower = 1L, default = 1000L, tags = "train"),
                                     cv = p_lgl(default = TRUE, tags = "train"),
@@ -352,12 +352,12 @@ LearnerRegrReemtree = R6Class("LearnerRegrReemtree",
                                   # (formula in the style of "target ~ partitionig.var1 + partitionig.var2 + ..";
                                   #  random formula is in a separate argument)
                                   #formula = task$formula()
-                                  partitioning.vars = setdiff(task$feature_names, pars$exclude.from.partitioning.vars)
+                                  partitioning.vars = task$feature_names[grepl(pars$include.partitioning.vars_expr, task$feature_names)]
                                   formula = as.formula(paste0(task$target_names," ~ ", 
                                                                paste0(partitioning.vars, collapse = " + ")))
                                   pars = insert_named(pars, list(formula = formula))
-                                  # remove formula.random and exclude.from.partitioning.vars from pars
-                                  pars = remove_named(pars, "exclude.from.partitioning.vars")
+                                  # remove formula.random and include.partitioning.vars_expr from pars
+                                  pars = remove_named(pars, "include.partitioning.vars_expr")
                                  
                                   
                                   ## use the mlr3misc::invoke function (it's similar to do.call())
@@ -408,7 +408,7 @@ LearnerRegrReemctree = R6Class("LearnerRegrReemctree",
                                  initialize = function() {
                                    param_set = ps(
                                      #formula = p_uty(tags = "train"),
-                                     exclude.from.partitioning.vars = p_uty(tags = "train"), # csauer
+                                     include.partitioning.vars_expr = p_uty(tags = "train"), # csauer
                                      random = p_uty(tags = "train"),
                                      MaxIterations = p_int(lower = 1L, default = 1000L, tags = "train"),
                                      minsplit = p_int(lower = 1L, default = 20L, tags = "train"),
@@ -446,12 +446,12 @@ LearnerRegrReemctree = R6Class("LearnerRegrReemctree",
                                    # (formula in the style of "target ~ partitionig.var1 + partitionig.var2 + ..";
                                    #  random formula is in a separate argument)
                                    #formula = task$formula()
-                                   partitioning.vars = setdiff(task$feature_names, pars$exclude.from.partitioning.vars)
+                                   partitioning.vars = task$feature_names[grepl(pars$include.partitioning.vars_expr, task$feature_names)]
                                    formula = as.formula(paste0(task$target_names," ~ ", 
                                                                paste0(partitioning.vars, collapse = " + ")))
                                    pars = insert_named(pars, list(formula = formula))
-                                   # remove formula.random and exclude.from.partitioning.vars from pars
-                                   pars = remove_named(pars, "exclude.from.partitioning.vars")
+                                   # remove formula.random and include.partitioning.vars_expr from pars
+                                   pars = remove_named(pars, "include.partitioning.vars_expr")
                                    
                                    ## use the mlr3misc::invoke function (it's similar to do.call())
                                    invoke(
