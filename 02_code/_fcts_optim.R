@@ -1,12 +1,13 @@
-optim_fct = function(id_train, param_setting,
+optim_fct = function(rep, id_train_list, setting,
                                   learner_name, learners_default, learners_hp_searchspace_default,
                                   preproc_default, preproc_hp_searchspace_default, preproc_hp_stepopt_order,
-                                  procedure, tuning_parameters){
+                                  procedure, resampling_parameters){
   
   # 1. Train/test data
-  data_train = data_phaselevel %>% filter((setting == param_setting) &
+  id_train = id_train_list[[rep]]
+  data_train = data_phaselevel %>% filter((setting == setting) &
                                             (companion_id %in% id_train))
-  data_test = data_phaselevel %>% filter((setting == param_setting) &
+  data_test = data_phaselevel %>% filter((setting == setting) &
                                            !(companion_id %in% id_train))
   stopifnot(length(intersect(data_train$companion_id, data_test$companion_id)) ==0) # make sure no ids are in both datasets
   
@@ -37,7 +38,12 @@ optim_fct = function(id_train, param_setting,
                                    preproc_hp_stepopt_order = preproc_hp_stepopt_order,
                                    task = task, 
                                    data_test = data_test, 
-                                   tuning_parameters = tuning_parameters)
+                                   resampling_parameters = resampling_parameters)
+  # Add information on procedure, learner_name and repetition
+  results$procedure = procedure
+  results$learner_name = as.character(learner_name)
+  results$rep = rep
+  results$setting = setting
   
   return(results)
   
@@ -52,7 +58,7 @@ get_tree_and_error_fct = function(procedure,
                                   preproc_hp_stepopt_order,
                                   task,
                                   data_test, 
-                                  tuning_parameters){
+                                  resampling_parameters){
   
   ## I) Procedures  involving tuning but no stepwise optimization) ---------------------------------
 
@@ -72,16 +78,14 @@ get_tree_and_error_fct = function(procedure,
                                   data_test = data_test,
                                   graph_learner = graph_learner, 
                                   search_space = search_space,
-                                  tuning_parameters = tuning_parameters)
+                                  resampling_parameters = resampling_parameters)
     
     # Add nested resampling error 
     final_tree$nested_resampling_error = nested_resampling_fct(task = task, 
                                                                          graph_learner = graph_learner, 
                                                                          search_space = search_space,
-                                                                         tuning_parameters = tuning_parameters)
-    
-    # Add information on procedure 
-    final_tree$procedure = procedure
+                                                                         resampling_parameters = resampling_parameters)
+  
     
     return(final_tree)
     
@@ -119,7 +123,7 @@ get_tree_and_error_fct = function(procedure,
                                    preproc_hp_searchspace = preproc_hp_searchspace,
                                    task = task,
                                    data_test = data_test, 
-                                   tuning_parameters = tuning_parameters)
+                                   resampling_parameters = resampling_parameters)
       })
     names(tree_results_list) = preproc_hp_stepopt_order
     
@@ -139,20 +143,17 @@ get_tree_and_error_fct = function(procedure,
                                     data_test = data_test,
                                     graph_learner = graph_learner, 
                                     search_space = search_space,
-                                    tuning_parameters = tuning_parameters)
+                                    resampling_parameters = resampling_parameters)
       # Add nested resampling error 
       # get last list element
       last_list_element =  tree_results_list[[length(tree_results_list)]] 
       # in last list element, get tree with best preproc hp
       final_tree_nested_resampling_error = unlist(last_list_element[[which(sapply(last_list_element,
-                                                                                  '[[', "best_preproc_hp"))]][tuning_parameters$eval_criterion])
+                                                                                  '[[', "best_preproc_hp"))]][resampling_parameters$eval_criterion])
       
       final_tree$nested_resampling_error = final_tree_nested_resampling_error
     }
 
-    # Add information on procedure 
-    final_tree$procedure = procedure
-    
     return(list("tree_results_list" = tree_results_list, "final_tree" = final_tree))
   }
   
@@ -190,7 +191,7 @@ get_tree_and_error_fct = function(procedure,
       purrr::map_dbl(.f = function(x) {
         graph_learner$param_set$values[names_preproc] = x[names_preproc]
         graph_learner$train(task)
-        apparent_error = graph_learner$predict(task)$score(msr(tuning_parameters$eval_criterion))
+        apparent_error = graph_learner$predict(task)$score(msr(resampling_parameters$eval_criterion))
         return(apparent_error)
       })
     ind.best_preproc_hp = which.max(unname(apparent_error_results))
@@ -198,13 +199,14 @@ get_tree_and_error_fct = function(procedure,
     # Train graph_learner one last time with best combination and evaluate on test data 
     graph_learner$param_set$values[names_preproc] = toeval_preproc_hp_list[[ind.best_preproc_hp]][names_preproc]
     graph_learner$train(task)
-    apparent_error = graph_learner$predict(task)$score(msr(tuning_parameters$eval_criterion))
-    test_error = graph_learner$predict_newdata(data_test)$score(msr(tuning_parameters$eval_criterion))
+    apparent_error = graph_learner$predict(task)$score(msr(resampling_parameters$eval_criterion))
+    test_error = graph_learner$predict_newdata(data_test)$score(msr(resampling_parameters$eval_criterion))
     
     final_tree = list("graph_learner" = graph_learner,
                       "apparent_error" = apparent_error,
                       "test_error"= test_error,
-                      "procedure" = procedure)
+                      "procedure" = procedure,
+                      "rep" = rep)
     return(final_tree)
   }
 
@@ -243,7 +245,7 @@ get_stepopt_preproc_hp_fct = function(preproc_of_interest,
                                       preproc_hp_searchspace,
                                       task,
                                       data_test, 
-                                      tuning_parameters){
+                                      resampling_parameters){
   
   
   # For each preprocessing operation, generate list of possible hp values that will be evaluated 
@@ -264,7 +266,7 @@ get_stepopt_preproc_hp_fct = function(preproc_of_interest,
                                    data_test = data_test,
                                    graph_learner = graph_learner, 
                                    search_space = search_space,
-                                   tuning_parameters = tuning_parameters)
+                                   resampling_parameters = resampling_parameters)
         return(results)
       })
      
@@ -281,7 +283,7 @@ get_stepopt_preproc_hp_fct = function(preproc_of_interest,
         results = nested_resampling_fct(task = task,
                                                   graph_learner = graph_learner, 
                                                   search_space = search_space,
-                                                  tuning_parameters = tuning_parameters)
+                                                  resampling_parameters = resampling_parameters)
         return(results)
       })
     
