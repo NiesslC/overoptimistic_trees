@@ -2,21 +2,21 @@ resampling_fct = function(task,
                         data_test,
                         graph_learner, 
                         search_space,
-                        tuning_parameters){
+                        resampling_parameters){
 
   # Set seed
-  set.seed(tuning_parameters$seed_resampling)
+  set.seed(resampling_parameters$seed_resampling)
   
   # Specify tuner and terminator ----
-  tuner = tnr("grid_search", resolution = tuning_parameters$resolution) # grid search, resolution of the grid 
-  terminator = trm("evals", n_evals = tuning_parameters$n_evals) # stop searching after n_evals evaluations
+  tuner = tnr("grid_search", resolution = resampling_parameters$resolution) # grid search, resolution of the grid 
+  terminator = trm("evals", n_evals = resampling_parameters$n_evals) # stop searching after n_evals evaluations
   
   # Tune parameters using cross-validation ---
   instance = TuningInstanceSingleCrit$new(
     task = task,
     learner = graph_learner,
-    resampling =  rsmp("cv", folds = tuning_parameters$folds_cv), 
-    measure = msr(tuning_parameters$eval_criterion),
+    resampling =  rsmp("cv", folds = resampling_parameters$folds_cv), 
+    measure = msr(resampling_parameters$eval_criterion),
     search_space = search_space,
     terminator = terminator
   )
@@ -28,11 +28,11 @@ resampling_fct = function(task,
   graph_learner_tuned$train(task)
   
   # Predict + Calculate apparent and resampling error on train data set ----
-  apparent_error = graph_learner_tuned$predict(task)$score(msr(tuning_parameters$eval_criterion))
-  resampling_error = unlist(instance$result %>% select(all_of(tuning_parameters$eval_criterion)))
+  apparent_error = graph_learner_tuned$predict(task)$score(msr(resampling_parameters$eval_criterion))
+  resampling_error = unlist(instance$result %>% select(all_of(resampling_parameters$eval_criterion)))
   
   # Predict + Calculate error on test data set ----
-  test_error = graph_learner_tuned$predict_newdata(data_test)$score(msr(tuning_parameters$eval_criterion))
+  test_error = graph_learner_tuned$predict_newdata(data_test)$score(msr(resampling_parameters$eval_criterion))
   
   # Return results ----
     result = list("graph_learner_tuned" = graph_learner_tuned,
@@ -49,19 +49,19 @@ resampling_fct = function(task,
 nested_resampling_fct = function(task,
                                            graph_learner, 
                                            search_space,
-                                           tuning_parameters){
+                                           resampling_parameters){
   # Set seed
-  set.seed(tuning_parameters$seed_nestedresampling)
+  set.seed(resampling_parameters$seed_nestedresampling)
   
   # Specify nested resampling scheme (tuner, terminator, inner and outer resampling etc.)
-  tuner = tnr("grid_search", resolution = tuning_parameters$resolution) # grid search, resolution of the grid = 50
-  terminator = trm("evals", n_evals = tuning_parameters$n_evals) # stop searching after n_evals evaluations
-  inner_resampling = rsmp("cv", folds = tuning_parameters$inner_folds_nestedcv) # number of inner folds
-  outer_resampling = rsmps("repeated_cv", repeats = tuning_parameters$outer_repeats, folds = tuning_parameters$outer_folds_nestedcv)
+  tuner = tnr("grid_search", resolution = resampling_parameters$resolution) # grid search, resolution of the grid = 50
+  terminator = trm("evals", n_evals = resampling_parameters$n_evals) # stop searching after n_evals evaluations
+  inner_resampling = rsmp("cv", folds = resampling_parameters$inner_folds_nestedcv) # number of inner folds
+  outer_resampling = rsmps("repeated_cv", repeats = resampling_parameters$outer_repeats, folds = resampling_parameters$outer_folds_nestedcv)
   
   graph_learner_tune = AutoTuner$new(graph_learner, 
                                inner_resampling, 
-                               msr(tuning_parameters$eval_criterion), 
+                               msr(resampling_parameters$eval_criterion), 
                                terminator, 
                                tuner,
                                search_space)
@@ -73,10 +73,10 @@ nested_resampling_fct = function(task,
     resamplings = outer_resampling
   )
   bmr = benchmark(design, store_models = TRUE)
-  tab = bmr$aggregate(msr(tuning_parameters$eval_criterion))
+  tab = bmr$aggregate(msr(resampling_parameters$eval_criterion))
   
   # Result contains some useful information about the nested resampling result, but will only extract nested resampling error
-  eval_criterion = tuning_parameters$eval_criterion
+  eval_criterion = resampling_parameters$eval_criterion
   nested_resampling_error = unlist(tab[,..eval_criterion])
   return(nested_resampling_error)
   
