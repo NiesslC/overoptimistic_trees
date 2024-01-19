@@ -335,7 +335,7 @@ summary(data_phaselevel %>%  rowwise() %>% # ok
          sum_minutes_uncorr = sum(c(sum_minutes_day_1,sum_minutes_day_geq2), na.rm = TRUE)/phase_days) %>%
   select(contains("uncorr")))
 
-# with cutoff < 10, there are max. (for pmd) 0.8496241 -> 15% of phases removed (in total, i.e. also including exclusions above)
+# with cutoff >= 10, there are max. (for pmd) 0.8496241 -> 15% of phases removed (in total, i.e. also including exclusions above)
 # data_phaselevel=data_phaselevel %>% rowwise() %>%
 #   mutate(sum_ca = sum(c_across(starts_with("ipos_")) == "cannot assess", na.rm = T)) 
 # 1:17 %>% map_dbl(function(x) nrow(data_phaselevel %>% filter(setting == "sapv" & sum_ca < x)) / 
