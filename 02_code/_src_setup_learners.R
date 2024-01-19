@@ -1,15 +1,15 @@
 # Set up learners ----
-lrn_rpart = lrn("regr.rpartMod", id = "lrn_rpart")
+lrn_cart = lrn("regr.rpartMod", id = "lrn_cart")
 lrn_ctree = lrn("regr.ctreeMod", id = "lrn_ctree")
-lrn_glmertree_if = lrn("regr.glmertree", id = "lrn_glmertree_if")
-lrn_glmertree_i = lrn("regr.glmertree", id = "lrn_glmertree_i")
-lrn_glmertree_f = lrn("regr.glmertree", id = "lrn_glmertree_f")
-lrn_reemtree_if = lrn("regr.reemtree", id = "lrn_reemtree_if")
+lrn_lmertree_it = lrn("regr.glmertree", id = "lrn_lmertree_it")
+lrn_lmertree_i = lrn("regr.glmertree", id = "lrn_lmertree_i")
+lrn_lmertree_t = lrn("regr.glmertree", id = "lrn_lmertree_t")
+lrn_reemtree_it = lrn("regr.reemtree", id = "lrn_reemtree_it")
 lrn_reemtree_i = lrn("regr.reemtree",  id = "lrn_reemtree_i")
-lrn_reemtree_f = lrn("regr.reemtree", id = "lrn_reemtree_f")
-lrn_reemctree_if = lrn("regr.reemctree", id = "lrn_reemctree_if")
+lrn_reemtree_t = lrn("regr.reemtree", id = "lrn_reemtree_t")
+lrn_reemctree_it = lrn("regr.reemctree", id = "lrn_reemctree_it")
 lrn_reemctree_i = lrn("regr.reemctree", id = "lrn_reemctree_i")
-lrn_reemctree_f = lrn("regr.reemctree", id = "lrn_reemctree_f")
+lrn_reemctree_t = lrn("regr.reemctree", id = "lrn_reemctree_t")
  
 # Set up learner hyperparameters (fixed and tunable) ----
 cp_lower = 0.001
@@ -39,8 +39,8 @@ tunable_hp_ps.mincriterion_minbucket = paradox::ps(
 )
 
 
-## lrn_rpart
-lrn_rpart.hp = list(
+## lrn_cart
+lrn_cart.hp = list(
   fixed = list( 
     include.partitioning.vars_expr = include.partitioning.vars_expr,
     maxdepth = maxdepth,
@@ -55,8 +55,8 @@ lrn_ctree.hp = list(
   tunable = tunable_hp_ps.alpha_minbucket$clone()
 )
 
-## lrn_glmertree_if
-lrn_glmertree_if.hp = list(
+## lrn_lmertree_it
+lrn_lmertree_it.hp = list(
   fixed = list( 
     formula.random = "(1|team_id/companion_id)",
     include.partitioning.vars_expr = include.partitioning.vars_expr,
@@ -64,19 +64,19 @@ lrn_glmertree_if.hp = list(
     maxdepth = maxdepth),
   tunable = tunable_hp_ps.alpha_minbucket$clone()
 )
-## lrn_glmertree_i
-lrn_glmertree_i.hp = lrn_glmertree_if.hp
-lrn_glmertree_i.hp$fixed$formula.random = "(1|companion_id)"
-lrn_glmertree_i.hp$tunable = tunable_hp_ps.alpha_minbucket$clone()
+## lrn_lmertree_i
+lrn_lmertree_i.hp = lrn_lmertree_it.hp
+lrn_lmertree_i.hp$fixed$formula.random = "(1|companion_id)"
+lrn_lmertree_i.hp$tunable = tunable_hp_ps.alpha_minbucket$clone()
 
-## lrn_glmertree_f
-lrn_glmertree_f.hp = lrn_glmertree_if.hp
-lrn_glmertree_f.hp$fixed$formula.random = "(1|team_id)"
-lrn_glmertree_f.hp$tunable = tunable_hp_ps.alpha_minbucket$clone()
+## lrn_lmertree_t
+lrn_lmertree_t.hp = lrn_lmertree_it.hp
+lrn_lmertree_t.hp$fixed$formula.random = "(1|team_id)"
+lrn_lmertree_t.hp$tunable = tunable_hp_ps.alpha_minbucket$clone()
 
 
-## lrn_reemtree_if
-lrn_reemtree_if.hp = list(
+## lrn_reemtree_it
+lrn_reemtree_it.hp = list(
   fixed = list( 
     include.partitioning.vars_expr = include.partitioning.vars_expr,
     random = ~1|team_id/companion_id,
@@ -88,18 +88,18 @@ lrn_reemtree_if.hp = list(
 )
 
 ## lrn_reemtree_i
-lrn_reemtree_i.hp = lrn_reemtree_if.hp
+lrn_reemtree_i.hp = lrn_reemtree_it.hp
 lrn_reemtree_i.hp$fixed$random =  ~1|companion_id
 lrn_reemtree_i.hp$tunable = tunable_hp_ps.cp_minbucket$clone()
 
-## lrn_reemtree_f
-lrn_reemtree_f.hp = lrn_reemtree_if.hp
-lrn_reemtree_f.hp$fixed$random =  ~1|team_id
-lrn_reemtree_f.hp$tunable = tunable_hp_ps.cp_minbucket$clone()
+## lrn_reemtree_t
+lrn_reemtree_t.hp = lrn_reemtree_it.hp
+lrn_reemtree_t.hp$fixed$random =  ~1|team_id
+lrn_reemtree_t.hp$tunable = tunable_hp_ps.cp_minbucket$clone()
 
 
-## lrn_reemctree_if
-lrn_reemctree_if.hp = list(
+## lrn_reemctree_it
+lrn_reemctree_it.hp = list(
   fixed = list( 
     include.partitioning.vars_expr = include.partitioning.vars_expr,
     random = ~1|team_id/companion_id,
@@ -107,50 +107,50 @@ lrn_reemctree_if.hp = list(
   tunable = tunable_hp_ps.mincriterion_minbucket$clone()
 )
 ## lrn_reemctree_i
-lrn_reemctree_i.hp = lrn_reemctree_if.hp
+lrn_reemctree_i.hp = lrn_reemctree_it.hp
 lrn_reemctree_i.hp$fixed$random =  ~1|companion_id
 lrn_reemctree_i.hp$tunable = tunable_hp_ps.mincriterion_minbucket$clone()
 
 
-## lrn_reemctree_f
-lrn_reemctree_f.hp = lrn_reemctree_if.hp
-lrn_reemctree_f.hp$fixed$random =  ~1|team_id
-lrn_reemctree_f.hp$tunable = tunable_hp_ps.mincriterion_minbucket$clone()
+## lrn_reemctree_t
+lrn_reemctree_t.hp = lrn_reemctree_it.hp
+lrn_reemctree_t.hp$fixed$random =  ~1|team_id
+lrn_reemctree_t.hp$tunable = tunable_hp_ps.mincriterion_minbucket$clone()
 
 
 
 # Assign fixed hyperparameter values to learners ----
-lrn_rpart$param_set$values = lrn_rpart.hp$fixed
+lrn_cart$param_set$values = lrn_cart.hp$fixed
 lrn_ctree$param_set$values = lrn_ctree.hp$fixed
-lrn_glmertree_if$param_set$values = lrn_glmertree_if.hp$fixed
-lrn_glmertree_i$param_set$values = lrn_glmertree_i.hp$fixed
-lrn_glmertree_f$param_set$values = lrn_glmertree_f.hp$fixed
-lrn_reemtree_if$param_set$values = lrn_reemtree_if.hp$fixed
+lrn_lmertree_it$param_set$values = lrn_lmertree_it.hp$fixed
+lrn_lmertree_i$param_set$values = lrn_lmertree_i.hp$fixed
+lrn_lmertree_t$param_set$values = lrn_lmertree_t.hp$fixed
+lrn_reemtree_it$param_set$values = lrn_reemtree_it.hp$fixed
 lrn_reemtree_i$param_set$values = lrn_reemtree_i.hp$fixed
-lrn_reemtree_f$param_set$values = lrn_reemtree_f.hp$fixed
-lrn_reemctree_if$param_set$values = lrn_reemctree_if.hp$fixed
+lrn_reemtree_t$param_set$values = lrn_reemtree_t.hp$fixed
+lrn_reemctree_it$param_set$values = lrn_reemctree_it.hp$fixed
 lrn_reemctree_i$param_set$values = lrn_reemctree_i.hp$fixed
-lrn_reemctree_f$param_set$values = lrn_reemctree_f.hp$fixed
+lrn_reemctree_t$param_set$values = lrn_reemctree_t.hp$fixed
 
 
 # Generate list of learners with assigned fixed hps ----
-learners_default = list(lrn_rpart,lrn_ctree,lrn_glmertree_if,lrn_glmertree_i,lrn_glmertree_f, lrn_reemtree_if,
-                     lrn_reemtree_i,lrn_reemtree_f,lrn_reemctree_if,lrn_reemctree_i,lrn_reemctree_f)
-names(learners_default) = c("lrn_rpart","lrn_ctree","lrn_glmertree_if","lrn_glmertree_i","lrn_glmertree_f", "lrn_reemtree_if",
-                         "lrn_reemtree_i","lrn_reemtree_f","lrn_reemctree_if","lrn_reemctree_i","lrn_reemctree_f")
+learners_default = list(lrn_cart,lrn_ctree,lrn_lmertree_it,lrn_lmertree_i,lrn_lmertree_t, lrn_reemtree_it,
+                     lrn_reemtree_i,lrn_reemtree_t,lrn_reemctree_it,lrn_reemctree_i,lrn_reemctree_t)
+names(learners_default) = c("lrn_cart","lrn_ctree","lrn_lmertree_it","lrn_lmertree_i","lrn_lmertree_t", "lrn_reemtree_it",
+                         "lrn_reemtree_i","lrn_reemtree_t","lrn_reemctree_it","lrn_reemctree_i","lrn_reemctree_t")
 
 # Generate list of search spaces for tunable hps ----
-lrn_rpart.hp$tunable$set_id = "lrn_rpart"
+lrn_cart.hp$tunable$set_id = "lrn_cart"
 lrn_ctree.hp$tunable$set_id = "lrn_ctree"
-lrn_glmertree_if.hp$tunable$set_id = "lrn_glmertree_if"
-lrn_glmertree_i.hp$tunable$set_id = "lrn_glmertree_i"
-lrn_glmertree_f.hp$tunable$set_id = "lrn_glmertree_f"
-lrn_reemtree_if.hp$tunable$set_id = "lrn_reemtree_if"
+lrn_lmertree_it.hp$tunable$set_id = "lrn_lmertree_it"
+lrn_lmertree_i.hp$tunable$set_id = "lrn_lmertree_i"
+lrn_lmertree_t.hp$tunable$set_id = "lrn_lmertree_t"
+lrn_reemtree_it.hp$tunable$set_id = "lrn_reemtree_it"
 lrn_reemtree_i.hp$tunable$set_id = "lrn_reemtree_i"
-lrn_reemtree_f.hp$tunable$set_id = "lrn_reemtree_f"
-lrn_reemctree_if.hp$tunable$set_id = "lrn_reemctree_if"
+lrn_reemtree_t.hp$tunable$set_id = "lrn_reemtree_t"
+lrn_reemctree_it.hp$tunable$set_id = "lrn_reemctree_it"
 lrn_reemctree_i.hp$tunable$set_id = "lrn_reemctree_i"
-lrn_reemctree_f.hp$tunable$set_id = "lrn_reemctree_f"
+lrn_reemctree_t.hp$tunable$set_id = "lrn_reemctree_t"
 
 learners_hp_searchspace_default = paste0(names(learners_default),".hp") %>% 
   purrr::map(~ ParamSetCollection$new(list(get(.x)$tunable)))
@@ -162,11 +162,11 @@ rm(# parameters
    "minbucket_lower","minbucket_upper","mincriterion_lower","mincriterion_upper",
    "alpha_lower","alpha_upper","cp_lower","cp_upper", "include.partitioning.vars_expr","maxdepth",
    # hp lists
-   "lrn_ctree.hp","lrn_glmertree_f.hp","lrn_glmertree_i.hp","lrn_glmertree_if.hp","lrn_reemctree_f.hp","lrn_reemctree_i.hp",
-   "lrn_reemctree_if.hp","lrn_reemtree_f.hp","lrn_reemtree_i.hp","lrn_reemtree_if.hp","lrn_rpart.hp",
+   "lrn_ctree.hp","lrn_lmertree_t.hp","lrn_lmertree_i.hp","lrn_lmertree_it.hp","lrn_reemctree_t.hp","lrn_reemctree_i.hp",
+   "lrn_reemctree_it.hp","lrn_reemtree_t.hp","lrn_reemtree_i.hp","lrn_reemtree_it.hp","lrn_cart.hp",
    # individual learners
-   "lrn_ctree", "lrn_glmertree_f","lrn_glmertree_i","lrn_glmertree_if","lrn_reemctree_f","lrn_reemctree_i",
-   "lrn_reemctree_if","lrn_reemtree_f","lrn_reemtree_i","lrn_reemtree_if","lrn_rpart")
+   "lrn_ctree", "lrn_lmertree_t","lrn_lmertree_i","lrn_lmertree_it","lrn_reemctree_t","lrn_reemctree_i",
+   "lrn_reemctree_it","lrn_reemtree_t","lrn_reemtree_i","lrn_reemtree_it","lrn_cart")
 
 #################################################################
 # search_space1 = ps(
