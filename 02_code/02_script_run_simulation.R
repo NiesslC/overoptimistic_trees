@@ -26,6 +26,7 @@ source("./02_code/_src_add_mlrlearners.R")
 # Set up learners (= algorithms) with corresponding hps --------------------------------------------
 source("./02_code/_src_setup_learners.R")
 # -> returned objects: learners_default and learners_hp_searchspace_default
+learner_names = names(learners_default)
 
 # Set up preprocessing pipeline with corresponding hps ---------------------------------------------
 
@@ -40,6 +41,9 @@ preproc_default = po("preproc.target") %>>%
   po("preproc.feature.akps")#%>>% 
 #po("fixfactors", affect_columns = selector_grep("palliativephase|ipos|age|cogn|akps"))  
 # (affect columns is important for fixfactors because otherwise new companion_ids in predict would be removed)
+
+#examplegraph =preproc_default %>>% lrn("regr.rpart", id = "learner")
+#examplegraph$plot(html = TRUE)
 
 # Search space preprocessing hps
 preproc_hp_searchspace_default = ps(
@@ -65,7 +69,7 @@ nrep = 3 # 50? 100?
 settings = c("sapv", "pmd", "station")
 
 # Tuning parameters 
-tuning_parameters = list(
+resampling_parameters = list(
   eval_criterion = "regr.rsq", # evaluation criterion
   n_evals = 3, # 5, # 100,
   folds_cv = 3, #
@@ -78,19 +82,19 @@ tuning_parameters = list(
 )
 
 # Optimization procedures 
-procedures = c(
-  ## learner.hyperparam: default, preproc.hyperparam: resampling, error: apparent+resampling+nested
-  "learner.hp.tune_preproc.hp.default",
-  ## learner.hyperparam: resampling, preproc.hyperparam: stepwise optimization, error: apparent
-  "learner.hp.tune_preproc.hp.steopt_error.apparent",
-  ## learner.hyperparam: resampling, preproc.hyperparam: stepwise optimization, error: resampling
-  "learner.hp.tune_preproc.hp.steopt_error.resampling",
-  ## learner.hyperparam: resampling, preproc.hyperparam: stepwise optimization, error: nested resampling
-  "learner.hp.tune_preproc.hp.steopt_error.nested_resampling",
-  ## learner.hyperparam: resampling, preproc.hyperparam: resampling, error: apparent+resampling+nested
-  "learner.hp.tune_preproc.hp.tune",
+procedure_list = list(
   ## learner.hyperparam: manually select value most prone to overfitting, preproc: try all combinations, error: apparent
-  "learner.hp.maxoverfit_preproc.hp.allcombinations_error.apparent"
+  "p0" = "learner.hp.maxoverfit_preproc.hp.allcombinations_error.apparent",
+  ## learner.hyperparam: default, preproc.hyperparam: resampling, error: apparent+resampling+nested
+  "p1" = "learner.hp.tune_preproc.hp.default",
+  ## learner.hyperparam: resampling, preproc.hyperparam: stepwise optimization, error: apparent
+  "p2a" = "learner.hp.tune_preproc.hp.steopt_error.apparent",
+  ## learner.hyperparam: resampling, preproc.hyperparam: stepwise optimization, error: resampling
+  "p2b" = "learner.hp.tune_preproc.hp.steopt_error.resampling",
+  ## learner.hyperparam: resampling, preproc.hyperparam: stepwise optimization, error: nested resampling
+  "p2c" = "learner.hp.tune_preproc.hp.steopt_error.nested_resampling",
+  ## learner.hyperparam: resampling, preproc.hyperparam: resampling, error: apparent+resampling+nested
+  "p3" = "learner.hp.tune_preproc.hp.tune"
 )
 
 
@@ -103,18 +107,32 @@ save(id_train_list, file = "./03_results/rdata/id_train_list.RData")
 
 # Run optimization ---------------------------------------------------------------------------------
 
-#### CURRENT ###
-id_train = id_train_list[[1]]
-learner_name = "lrn_glmertree_if"
-procedure = "learner.hp.tune_preproc.hp.steopt_error.apparent"#"preproc.hp.tune_learner.hp.tune"
-param_setting = settings[1]
-#########
+## setting: sapv, procedure = p1 ---- 
+setting = settings[1]
+procedure = procedure_list$p1
+params = expand.grid(rep = 1:nrep, learner_name = learner_names) # all learners, all repetitions
+
+res_sapv_p1 = purrr::map2(.x = params$rep, .y = params$learner_name,
+            ~ optim_fct(rep = .x,
+                        id_train_list = id_train_list, 
+                        setting = setting,
+                        learner_name = .y, 
+                        learners_default = learners_default, 
+                        learners_hp_searchspace_default = learners_hp_searchspace_default,
+                        preproc_default = preproc_default, 
+                        preproc_hp_searchspace_default = preproc_hp_searchspace_default, 
+                        preproc_hp_stepopt_order = preproc_hp_stepopt_order,
+                        procedure = procedure, 
+                        resampling_parameters = resampling_parameters))
+save(res_sapv_p1, file = "./03_results/rdata/res_sapv_p1.RData")
+
 
 
 
 
 
 # To Do: -------------------------------------------------------------------------------------------
+# - Implement different n_eval for tuning with and without preproc HPs
 # - Function descriptions
 # - Implement procedure where learner choice is also tunable 
 # - Do we need all functions in learner_helpers benötigt?
