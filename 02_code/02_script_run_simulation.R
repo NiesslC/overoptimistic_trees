@@ -127,11 +127,28 @@ res_sapv_p1 = purrr::map2(.x = params$rep, .y = params$learner_name,
 save(res_sapv_p1, file = "./03_results/rdata/res_sapv_p1.RData")
 
 
+## setting: sapv, procedure = p2a ---- 
+setting = settings[1]
+procedure = procedure_list$p2a
+params = expand.grid(rep = 1:nrep, learner_name = learner_names) # all learners, all repetitions
 
-
+res_sapv_p2a = purrr::map2(.x = params$rep, .y = params$learner_name,
+                          ~ optim_fct(rep = .x,
+                                      id_train_list = id_train_list, 
+                                      setting = setting,
+                                      learner_name = .y, 
+                                      learners_default = learners_default, 
+                                      learners_hp_searchspace_default = learners_hp_searchspace_default,
+                                      preproc_default = preproc_default, 
+                                      preproc_hp_searchspace_default = preproc_hp_searchspace_default, 
+                                      preproc_hp_stepopt_order = preproc_hp_stepopt_order,
+                                      procedure = procedure, 
+                                      resampling_parameters = resampling_parameters))
+save(res_sapv_p2a, file = "./03_results/rdata/res_sapv_p2a.RData")
 
 
 # To Do: -------------------------------------------------------------------------------------------
+# - Add data phase level as parameter in optim_fct?
 # - Implement different n_eval for tuning with and without preproc HPs
 # - Function descriptions
 # - Implement procedure where learner choice is also tunable 
