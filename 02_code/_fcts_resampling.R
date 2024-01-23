@@ -23,7 +23,7 @@ resampling_fct = function(task,
   tuner$optimize(instance)
   
   # Get best parameters and grow tree on train_data ----
-  graph_learner_tuned = graph_learner
+  graph_learner_tuned = graph_learner$clone(deep = TRUE) # clone because otherwise we cannot track the graph_learners tuned during stepwise optimization
   graph_learner_tuned$param_set$values = instance$result_learner_param_vals
   graph_learner_tuned$train(task)
   
