@@ -19,8 +19,24 @@ knitr::opts_chunk$set(
 The goal of overoptimistic_trees is to ...
 
 <!-- What is special about using `README.Rmd` instead of just `README.md`? You can include R chunks like so: -->
+```{r , echo= FALSE, warning = FALSE, message = FALSE}
+library(dplyr)
+library(tidyr)
+library(forcats)
+library(purrr)
+library(mlr3)
+library(mlr3pipelines)
+library(mlr3misc)
+library(mlr3tuning)
+library(paradox)
+library(R6)
+library(party) # for reemctree function
+library(nlme) # for reemctree function
+#library(rpart.plot)
+```
 
-```{r cars}
+```{r }
+
 sessionInfo()
 ```
 
