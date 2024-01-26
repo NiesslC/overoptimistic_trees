@@ -59,12 +59,13 @@ nested_resampling_fct = function(task,
   inner_resampling = rsmp("cv", folds = resampling_parameters$inner_folds_nestedcv) # number of inner folds
   outer_resampling = rsmps("repeated_cv", repeats = resampling_parameters$outer_repeats, folds = resampling_parameters$outer_folds_nestedcv)
   
-  graph_learner_tune = AutoTuner$new(graph_learner, 
-                               inner_resampling, 
-                               msr(resampling_parameters$eval_criterion), 
-                               terminator, 
-                               tuner,
-                               search_space)
+  graph_learner_tune = auto_tuner(
+    tuner = tuner,
+    learner = graph_learner,
+    search_space = search_space,
+    resampling = inner_resampling,
+    measure = msr(resampling_parameters$eval_criterion),
+    terminator = terminator)
   
   # Get nested resampling error
   design = benchmark_grid(
