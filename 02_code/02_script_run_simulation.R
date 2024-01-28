@@ -50,7 +50,7 @@ preproc_hp_searchspace_default = ps(
   preproc.target.option = p_fct(c("A", "B", "C")),
   preproc.drop.targetout.option = p_fct(c("A", "B", "C", "D")),
   preproc.drop.iposca.option = p_fct(c("A", "B", "C", "D")),
-  preproc.feature.ipos.option = p_fct(c("A", "B", "C", "D", "E")),
+  preproc.feature.ipos.option = p_fct(c("A", "B", "C", "D")),
   preproc.feature.age.option = p_fct(c("A", "B")),
   preproc.feature.akps.option = p_fct(c("A", "B"))
 ) 
@@ -70,13 +70,13 @@ settings = c("sapv", "pmd", "station")
 
 # Tuning parameters 
 resampling_parameters = list(
-  eval_criterion = "regr.rsq", # evaluation criterion
-  n_evals = 3, # 5, # 100,
-  folds_cv = 3, #
-  inner_folds_nestedcv = 3, # 5 
-  outer_folds_nestedcv = 3, # 5?
-  outer_repeats = 1, #3 ? 
-  resolution = 10, #  50
+  eval_criterion = "regr.rmse", # "regr.rsq", # evaluation criterion
+  n_evals = 3, ##### 50,
+  folds_cv = 10, #
+  inner_folds_nestedcv = 3, 
+  outer_folds_nestedcv = 10,
+  outer_repeats = 1, 
+  resolution = 10, ######  50
   seed_resampling = 1705410730,
   seed_nestedresampling = 1705419930
 )
@@ -114,6 +114,7 @@ params = expand.grid(rep = 1:nrep, learner_name = learner_names) # all learners,
 
 res_sapv_p1 = purrr::map2(.x = params$rep, .y = params$learner_name,
             ~ optim_fct(rep = .x,
+                        data = data_phaselevel,
                         id_train_list = id_train_list, 
                         setting = setting,
                         learner_name = .y, 
@@ -134,6 +135,7 @@ params = expand.grid(rep = 1:nrep, learner_name = learner_names) # all learners,
 
 res_sapv_p2a = purrr::map2(.x = params$rep, .y = params$learner_name,
                           ~ optim_fct(rep = .x,
+                                      data = data_phaselevel,
                                       id_train_list = id_train_list, 
                                       setting = setting,
                                       learner_name = .y, 
@@ -148,8 +150,9 @@ save(res_sapv_p2a, file = "./03_results/rdata/res_sapv_p2a.RData")
 
 
 # To Do: -------------------------------------------------------------------------------------------
-# - Add data phase level as parameter in optim_fct?
+# - Add Vergleich featureless prediction!
 # - Implement different n_eval for tuning with and without preproc HPs
+
 # - Function descriptions
 # - Implement procedure where learner choice is also tunable 
 # - Do we need all functions in learner_helpers benötigt?
