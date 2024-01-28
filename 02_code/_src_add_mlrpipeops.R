@@ -91,7 +91,7 @@ PipeOpPreprocFeatureIpos = R6::R6Class("PipeOpPreprocFeatureIpos",
                                       public = list(
                                         initialize = function(id = "preproc.feature.ipos", param_vals = list()) {
                                           ps = ParamSet$new(params = list(
-                                            ParamFct$new("option", levels = c("A", "B", "C", "D", "E"))
+                                            ParamFct$new("option", levels = c("A", "B", "C", "D"))
                                           ))
                                           ps$values = list(option = "A")
                                           super$initialize(id = id, param_set = ps, 
@@ -149,7 +149,7 @@ PipeOpDropIposCa = R6::R6Class("PipeOpDropIposCa",
                            public = list(
                              initialize = function(id = "preproc.drop.iposca", param_vals = list()) {
                                ps = ParamSet$new(params = list(
-                                 ParamFct$new("option", levels = c("A", "B", "C", "D", "E", "F", "G", "H"))
+                                 ParamFct$new("option", levels = c("A", "B", "C", "D"))
                                ))
                                ps$values = list(option = "A")
                                super$initialize(id = id, param_set = ps, 

@@ -146,13 +146,14 @@ preprocess_feature_akps_fct = function(data, option){
   } else if(option == "B"){
     # Option B ---- 
     # Only collapse several AKPS categories (note: values 0 and 100 do not exist in the data)
+    # and treat as unordered variable 
     data = data %>% 
       mutate(akps = case_when(
         akps %in% c("10", "20") ~  "10_20",
         akps %in% c("30", "40", "50") ~  "30_40_50",
         akps %in% c("60", "70", "80", "90") ~ "60_70_80_90",
         .default = akps)) %>% 
-      mutate(akps = factor(akps, ordered = TRUE))
+      mutate(akps = factor(akps, ordered = FALSE)) 
   }
   stopifnot(sum(is.na(data$akps))==0) # check that no NAs
   return(data)
@@ -224,31 +225,31 @@ preprocess_feature_ipos_fct = function(data, option){
       select(-setdiff(starts_with("ipos"), ends_with(c("ipos_score_extreme_exclpb","ipos_pain","ipos_shortness_breath")))) # remove unused ipos vars
     
     #feature_names = c("ipos_score_extreme_exclpb","ipos_pain","ipos_shortness_breath")
-  } else if(option == "E"){
+  } #else if(option == "E"){
     
-    # Option E ----
-    # IPOS variables considered separately as ordinal variables, excluding some variables that 
-    # likely do not have an effect on resources on their own 
-    # Handling of "cannot assess": "cannot assess" is set to the corresponding least extreme value
-    data = data %>% select(-ipos_sore_dry_mouth) %>%
-      mutate(across(starts_with("ipos"), ~ na_if(., "cannot assess"))) %>%
-      mutate(across(starts_with("ipos"), ~ fct_drop(., only = c("cannot assess")))) %>%
-      mutate(across(starts_with("ipos"), ~ replace_na(.,levels(.)[1]))) %>%
-      mutate(across(starts_with("ipos"), ~ factor(., ordered = TRUE)))
-    ## Note: In case only the three most extreme values should be differentiated, use sth like below 
-    # mutate(across(starts_with("ipos"), ~na_if(., "cannot assess"))) %>%
-    # (fct_drop makes sure that only cannot assess is removed and not other unused factor levels to keep original scale)
-    # mutate(across(starts_with("ipos"),~ fct_drop(., only = c("cannot assess")))) %>%
-    # mutate(across(starts_with("ipos"), ~as.integer(.))) %>%
-    # mutate(across(starts_with("ipos"), ~ -1*(. -(1+max(., na.rm =TRUE))))) %>%
-    # mutate(across(starts_with("ipos"), ~ case_when(
-    #   . == 1 ~ "overwhelmingly",
-    #   . == 2 ~ "severely",
-    #   . == 3 ~ "moderately",
-    #   . %in% c(4,5) |is.na(.)~ "slightlyorless" )))%>%
-    #   mutate(across(starts_with("ipos"),  ~ factor(., levels = c("slightlyorless","moderately","severely","overwhelmingly"),ordered = TRUE)))
-    #feature_names = colnames(data %>% select(starts_with("ipos")))
-  }
+  #   # Option E ---- (this option was excluded before running the simulation)
+  #   # IPOS variables considered separately as ordinal variables, excluding some variables that 
+  #   # likely do not have an effect on resources on their own 
+  #   # Handling of "cannot assess": "cannot assess" is set to the corresponding least extreme value
+  #   data = data %>% select(-ipos_sore_dry_mouth) %>%
+  #     mutate(across(starts_with("ipos"), ~ na_if(., "cannot assess"))) %>%
+  #     mutate(across(starts_with("ipos"), ~ fct_drop(., only = c("cannot assess")))) %>%
+  #     mutate(across(starts_with("ipos"), ~ replace_na(.,levels(.)[1]))) %>%
+  #     mutate(across(starts_with("ipos"), ~ factor(., ordered = TRUE)))
+  #   ## Note: In case only the three most extreme values should be differentiated, use sth like below 
+  #   # mutate(across(starts_with("ipos"), ~na_if(., "cannot assess"))) %>%
+  #   # (fct_drop makes sure that only cannot assess is removed and not other unused factor levels to keep original scale)
+  #   # mutate(across(starts_with("ipos"),~ fct_drop(., only = c("cannot assess")))) %>%
+  #   # mutate(across(starts_with("ipos"), ~as.integer(.))) %>%
+  #   # mutate(across(starts_with("ipos"), ~ -1*(. -(1+max(., na.rm =TRUE))))) %>%
+  #   # mutate(across(starts_with("ipos"), ~ case_when(
+  #   #   . == 1 ~ "overwhelmingly",
+  #   #   . == 2 ~ "severely",
+  #   #   . == 3 ~ "moderately",
+  #   #   . %in% c(4,5) |is.na(.)~ "slightlyorless" )))%>%
+  #   #   mutate(across(starts_with("ipos"),  ~ factor(., levels = c("slightlyorless","moderately","severely","overwhelmingly"),ordered = TRUE)))
+  #   #feature_names = colnames(data %>% select(starts_with("ipos")))
+  # }
   
   #return(list("data" = data, "feature_names" = feature_names))
   
