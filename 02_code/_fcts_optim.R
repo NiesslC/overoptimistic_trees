@@ -1,13 +1,13 @@
-optim_fct = function(rep, id_train_list, setting,
+optim_fct = function(rep, data, id_train_list, setting,
                                   learner_name, learners_default, learners_hp_searchspace_default,
                                   preproc_default, preproc_hp_searchspace_default, preproc_hp_stepopt_order,
                                   procedure, resampling_parameters){
   
   # 1. Train/test data
   id_train = id_train_list[[rep]]
-  data_train = data_phaselevel %>% filter((setting == setting) &
+  data_train = data %>% filter((setting == setting) &
                                             (companion_id %in% id_train))
-  data_test = data_phaselevel %>% filter((setting == setting) &
+  data_test = data %>% filter((setting == setting) &
                                            !(companion_id %in% id_train))
   stopifnot(length(intersect(data_train$companion_id, data_test$companion_id)) ==0) # make sure no ids are in both datasets
   
