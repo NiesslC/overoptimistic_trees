@@ -3,13 +3,23 @@ resampling_fct = function(task,
                         graph_learner, 
                         search_space,
                         resampling_parameters){
+  
+  # Choose number of evaluations depending on whether only HPs of learner or learner + preprocessing are considered
+  if(any(grepl("preproc.",search_space$ids()))){
+    n_evals = resampling_parameters$n_evals_learnandpreproc_hp
+  } else{
+    n_evals = resampling_parameters$n_evals_learn_hp
+  }
+    
 
   # Set seed
   set.seed(resampling_parameters$seed_resampling)
   
   # Specify tuner and terminator ----
-  tuner = tnr("grid_search", resolution = resampling_parameters$resolution) # grid search, resolution of the grid 
-  terminator = trm("evals", n_evals = resampling_parameters$n_evals) # stop searching after n_evals evaluations
+  #tuner = tnr("grid_search", resolution = resampling_parameters$resolution) # grid search, resolution of the grid 
+  tuner = tnr("random_search", batch_size = n_evals) 
+  
+  terminator = trm("evals", n_evals = n_evals) # stop searching after n_evals evaluations
   
   # Tune parameters using cross-validation ---
   instance = TuningInstanceSingleCrit$new(
@@ -47,15 +57,24 @@ resampling_fct = function(task,
 
 
 nested_resampling_fct = function(task,
-                                           graph_learner, 
-                                           search_space,
-                                           resampling_parameters){
+                                 graph_learner, 
+                                 search_space,
+                                 resampling_parameters){
+  
+  # Choose number of evaluations depending on whether only HPs of learner or learner + preprocessing are considered
+  if(any(grepl("preproc.",search_space$ids()))){
+    n_evals = resampling_parameters$n_evals_learnandpreproc_hp
+  } else{
+    n_evals = resampling_parameters$n_evals_learn_hp
+  }
+  
   # Set seed
   set.seed(resampling_parameters$seed_nestedresampling)
   
   # Specify nested resampling scheme (tuner, terminator, inner and outer resampling etc.)
-  tuner = tnr("grid_search", resolution = resampling_parameters$resolution) # grid search, resolution of the grid = 50
-  terminator = trm("evals", n_evals = resampling_parameters$n_evals) # stop searching after n_evals evaluations
+  # tuner = tnr("grid_search", resolution = resampling_parameters$resolution) # grid search, resolution of the grid = 50
+  tuner = tnr("random_search", batch_size = n_evals) 
+  terminator = trm("evals", n_evals = n_evals) # stop searching after n_evals evaluations
   inner_resampling = rsmp("cv", folds = resampling_parameters$inner_folds_nestedcv) # number of inner folds
   outer_resampling = rsmps("repeated_cv", repeats = resampling_parameters$outer_repeats, folds = resampling_parameters$outer_folds_nestedcv)
   
