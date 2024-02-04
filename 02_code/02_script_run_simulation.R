@@ -63,20 +63,20 @@ preproc_hp_stepopt_order = paste0(preproc_hp_stepopt_order, ".option")
 
 # Simulation parameters  ---------------------------------------------------------------------------
 # Number of simulated train/test datasets
-nrep = 3 # 50? 100? 
+nrep = 50
 
 # Possible settings
 settings = c("sapv", "pmd", "station")
 
 # Tuning parameters 
 resampling_parameters = list(
-  eval_criterion = "regr.rmse", # "regr.rsq", # evaluation criterion
-  n_evals = 3, ##### 50,
-  folds_cv = 10, #
-  inner_folds_nestedcv = 3, 
-  outer_folds_nestedcv = 10,
+  eval_criterion = "regr.rmse", # "regr.rsq", 
+  n_evals_learn_hp = 1, ###########50,
+  n_evals_learnandpreproc_hp = 1,###############500,
+  folds_cv = 5, 
+  inner_folds_nestedcv = 2, 
+  outer_folds_nestedcv = 5,
   outer_repeats = 1, 
-  resolution = 10, ######  50
   seed_resampling = 1705410730,
   seed_nestedresampling = 1705419930
 )
@@ -107,51 +107,116 @@ save(id_train_list, file = "./03_results/rdata/id_train_list.RData")
 
 # Run optimization ---------------------------------------------------------------------------------
 
-## setting: sapv, procedure = p1 ---- 
+## setting: sapv, leaner: cart, procedure = p1 ---- 
 setting = settings[1]
+learner_name = learner_names[1]
 procedure = procedure_list$p1
-params = expand.grid(rep = 1:nrep, learner_name = learner_names) # all learners, all repetitions
 
-res_sapv_p1 = purrr::map2(.x = params$rep, .y = params$learner_name,
-            ~ optim_fct(rep = .x,
-                        data = data_phaselevel,
-                        id_train_list = id_train_list, 
-                        setting = setting,
-                        learner_name = .y, 
-                        learners_default = learners_default, 
-                        learners_hp_searchspace_default = learners_hp_searchspace_default,
-                        preproc_default = preproc_default, 
-                        preproc_hp_searchspace_default = preproc_hp_searchspace_default, 
-                        preproc_hp_stepopt_order = preproc_hp_stepopt_order,
-                        procedure = procedure, 
-                        resampling_parameters = resampling_parameters))
-save(res_sapv_p1, file = "./03_results/rdata/res_sapv_p1.RData")
+1:nrep %>% purrr::map(.f = function(x) {
+  optim_fct(rep = x,
+            data = data_phaselevel,
+            id_train_list = id_train_list, 
+            setting = setting,
+            learner_name = learner_name, 
+            learners_default = learners_default, 
+            learners_hp_searchspace_default = learners_hp_searchspace_default,
+            preproc_default = preproc_default, 
+            preproc_hp_searchspace_default = preproc_hp_searchspace_default, 
+            preproc_hp_stepopt_order = preproc_hp_stepopt_order,
+            procedure = procedure, 
+            procedure_list = procedure_list,
+            resampling_parameters = resampling_parameters)
+})
 
 
-## setting: sapv, procedure = p2a ---- 
+## setting: sapv, leaner: cart, procedure = p2a ---- 
 setting = settings[1]
+learner_name = learner_names[1]
 procedure = procedure_list$p2a
-params = expand.grid(rep = 1:nrep, learner_name = learner_names) # all learners, all repetitions
 
-res_sapv_p2a = purrr::map2(.x = params$rep, .y = params$learner_name,
-                          ~ optim_fct(rep = .x,
-                                      data = data_phaselevel,
-                                      id_train_list = id_train_list, 
-                                      setting = setting,
-                                      learner_name = .y, 
-                                      learners_default = learners_default, 
-                                      learners_hp_searchspace_default = learners_hp_searchspace_default,
-                                      preproc_default = preproc_default, 
-                                      preproc_hp_searchspace_default = preproc_hp_searchspace_default, 
-                                      preproc_hp_stepopt_order = preproc_hp_stepopt_order,
-                                      procedure = procedure, 
-                                      resampling_parameters = resampling_parameters))
-save(res_sapv_p2a, file = "./03_results/rdata/res_sapv_p2a.RData")
+1:nrep %>% purrr::map(.f = function(x) {
+  optim_fct(rep = x,
+            data = data_phaselevel,
+            id_train_list = id_train_list, 
+            setting = setting,
+            learner_name = learner_name, 
+            learners_default = learners_default, 
+            learners_hp_searchspace_default = learners_hp_searchspace_default,
+            preproc_default = preproc_default, 
+            preproc_hp_searchspace_default = preproc_hp_searchspace_default, 
+            preproc_hp_stepopt_order = preproc_hp_stepopt_order,
+            procedure = procedure, 
+            procedure_list = procedure_list,
+            resampling_parameters = resampling_parameters)
+})
 
+
+
+## setting: sapv, leaner: cart, procedure = p2b ---- 
+setting = settings[1]
+learner_name = learner_names[1]
+procedure = procedure_list$p2b
+
+1:nrep %>% purrr::map(.f = function(x) {
+  optim_fct(rep = x,
+            data = data_phaselevel,
+            id_train_list = id_train_list, 
+            setting = setting,
+            learner_name = learner_name, 
+            learners_default = learners_default, 
+            learners_hp_searchspace_default = learners_hp_searchspace_default,
+            preproc_default = preproc_default, 
+            preproc_hp_searchspace_default = preproc_hp_searchspace_default, 
+            preproc_hp_stepopt_order = preproc_hp_stepopt_order,
+            procedure = procedure, 
+            procedure_list = procedure_list,
+            resampling_parameters = resampling_parameters)
+})
+
+## setting: sapv, leaner: cart, procedure = p2c ---- 
+setting = settings[1]
+learner_name = learner_names[1]
+procedure = procedure_list$p2c
+
+1:nrep %>% purrr::map(.f = function(x) {
+  optim_fct(rep = x,
+            data = data_phaselevel,
+            id_train_list = id_train_list, 
+            setting = setting,
+            learner_name = learner_name, 
+            learners_default = learners_default, 
+            learners_hp_searchspace_default = learners_hp_searchspace_default,
+            preproc_default = preproc_default, 
+            preproc_hp_searchspace_default = preproc_hp_searchspace_default, 
+            preproc_hp_stepopt_order = preproc_hp_stepopt_order,
+            procedure = procedure, 
+            procedure_list = procedure_list,
+            resampling_parameters = resampling_parameters)
+})
+
+## setting: sapv, leaner: cart, procedure = p3 ---- 
+setting = settings[1]
+learner_name = learner_names[1]
+procedure = procedure_list$p3
+
+1:nrep %>% purrr::map(.f = function(x) {
+  optim_fct(rep = x,
+            data = data_phaselevel,
+            id_train_list = id_train_list, 
+            setting = setting,
+            learner_name = learner_name, 
+            learners_default = learners_default, 
+            learners_hp_searchspace_default = learners_hp_searchspace_default,
+            preproc_default = preproc_default, 
+            preproc_hp_searchspace_default = preproc_hp_searchspace_default, 
+            preproc_hp_stepopt_order = preproc_hp_stepopt_order,
+            procedure = procedure, 
+            procedure_list = procedure_list,
+            resampling_parameters = resampling_parameters)
+})
 
 # To Do: -------------------------------------------------------------------------------------------
 # - Add Vergleich featureless prediction!
-# - Implement different n_eval for tuning with and without preproc HPs
 
 # - Function descriptions
 # - Implement procedure where learner choice is also tunable 
