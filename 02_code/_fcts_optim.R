@@ -1,7 +1,11 @@
 optim_fct = function(rep, data, id_train_list, setting,
-                                  learner_name, learners_default, learners_hp_searchspace_default,
-                                  preproc_default, preproc_hp_searchspace_default, preproc_hp_stepopt_order,
-                                  procedure, resampling_parameters){
+                     learner_name, learners_default, learners_hp_searchspace_default,
+                     preproc_default, preproc_hp_searchspace_default, preproc_hp_stepopt_order,
+                     procedure, procedure_list,
+                     resampling_parameters){
+  # Check whether file already exists, if no -> start calculation
+  filename = paste0("./03_results/rdata/res_", paste(setting, names(which(procedure_list == procedure)), learner_name, rep, sep = "_"),".RData")
+  if(!file.exists(filename)){
   
   # 1. Train/test data
   id_train = id_train_list[[rep]]
@@ -45,8 +49,10 @@ optim_fct = function(rep, data, id_train_list, setting,
   results$rep = rep
   results$setting = setting
   
-  return(results)
-  
+  # Save result
+  save(results, file = filename)
+  #return(results)
+  }
 }
 
 
