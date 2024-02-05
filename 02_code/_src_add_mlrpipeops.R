@@ -135,8 +135,12 @@ PipeOpDropTargetOut = R6::R6Class("PipeOpDropTargetOut",
                              },
                              
                              .predict_task = function(task) {
-                               exclude =  task$data(cols = task$target_names) > self$state$threshold
-                               task$filter(task$row_ids[!exclude])
+                               
+                               #exclude =  task$data(cols = task$target_names) > self$state$threshold
+                               #task$filter(task$row_ids[!exclude])
+                               
+                               # do not remove any observations
+                               task
                                
                              }
                            )
