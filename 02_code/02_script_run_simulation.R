@@ -112,7 +112,7 @@ setting = settings[1]
 learner_name = learner_names[1]
 procedure = procedure_list$p1
 
-1:nrep %>% purrr::map(.f = function(x) {
+1:nrep %>% purrr::walk(.f = function(x) {
   optim_fct(rep = x,
             data = data_phaselevel,
             id_train_list = id_train_list, 
@@ -134,7 +134,7 @@ setting = settings[1]
 learner_name = learner_names[1]
 procedure = procedure_list$p2a
 
-1:nrep %>% purrr::map(.f = function(x) {
+1:nrep %>% purrr::walk(.f = function(x) {
   optim_fct(rep = x,
             data = data_phaselevel,
             id_train_list = id_train_list, 
@@ -157,7 +157,7 @@ setting = settings[1]
 learner_name = learner_names[1]
 procedure = procedure_list$p2b
 
-1:nrep %>% purrr::map(.f = function(x) {
+1:nrep %>% purrr::walk(.f = function(x) {
   optim_fct(rep = x,
             data = data_phaselevel,
             id_train_list = id_train_list, 
@@ -178,7 +178,7 @@ setting = settings[1]
 learner_name = learner_names[1]
 procedure = procedure_list$p2c
 
-1:nrep %>% purrr::map(.f = function(x) {
+1:nrep %>% purrr::walk(.f = function(x) {
   optim_fct(rep = x,
             data = data_phaselevel,
             id_train_list = id_train_list, 
@@ -199,7 +199,7 @@ setting = settings[1]
 learner_name = learner_names[1]
 procedure = procedure_list$p3
 
-1:nrep %>% purrr::map(.f = function(x) {
+1:nrep %>% purrr::walk(.f = function(x) {
   optim_fct(rep = x,
             data = data_phaselevel,
             id_train_list = id_train_list, 
