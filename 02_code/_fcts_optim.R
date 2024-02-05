@@ -73,7 +73,7 @@ get_tree_and_error_fct = function(procedure,
     if(procedure == "learner.hp.tune_preproc.hp.default"){
       # Set parameter space only for learner hps (preprocessing hp = default) 
       search_space = learner_hp_searchspace$clone(deep = TRUE)
-    } else if(procedure == "preproc.hp.tune_learner.hp.tune"){
+    } else if(procedure == "learner.hp.tune_preproc.hp.tune"){
       # Set parameter space for learner and preprocessing hps
       search_space = learner_hp_searchspace$clone(deep = TRUE)
       search_space$add(preproc_hp_searchspace)
