@@ -71,8 +71,8 @@ settings = c("sapv", "pmd", "station")
 # Tuning parameters 
 resampling_parameters = list(
   eval_criterion = "regr.rmse", # "regr.rsq", 
-  n_evals_learn_hp = 1, ###########50,
-  n_evals_learnandpreproc_hp = 1,###############500,
+  n_evals_learn_hp = 50,
+  n_evals_learnandpreproc_hp = 500,
   folds_cv = 5, 
   inner_folds_nestedcv = 2, 
   outer_folds_nestedcv = 5,
@@ -106,6 +106,28 @@ id_train_list = 1:nrep %>% map(function(x) data_phaselevel %>% distinct(companio
 save(id_train_list, file = "./03_results/rdata/id_train_list.RData")
 
 # Run optimization ---------------------------------------------------------------------------------
+
+
+## setting: sapv, leaner: cart, procedure = p0 ---- 
+setting = settings[1]
+learner_name = learner_names[1]
+procedure = procedure_list$p0
+
+1:nrep %>% purrr::walk(.f = function(x) {
+  optim_fct(rep = x,
+            data = data_phaselevel,
+            id_train_list = id_train_list, 
+            setting = setting,
+            learner_name = learner_name, 
+            learners_default = learners_default, 
+            learners_hp_searchspace_default = learners_hp_searchspace_default,
+            preproc_default = preproc_default, 
+            preproc_hp_searchspace_default = preproc_hp_searchspace_default, 
+            preproc_hp_stepopt_order = preproc_hp_stepopt_order,
+            procedure = procedure, 
+            procedure_list = procedure_list,
+            resampling_parameters = resampling_parameters)
+})
 
 ## setting: sapv, leaner: cart, procedure = p1 ---- 
 setting = settings[1]
