@@ -200,7 +200,12 @@ get_tree_and_error_fct = function(procedure,
         apparent_error = graph_learner$predict(task)$score(msr(resampling_parameters$eval_criterion))
         return(apparent_error)
       })
-    ind.best_preproc_hp = which.max(unname(apparent_error_results))
+    
+    if(resampling_parameters$eval_criterion == "regr.rsq"){
+      ind.best_preproc_hp = which.max(unname(apparent_error_results))
+    } else if(resampling_parameters$eval_criterion == "regr.rmse"){
+      ind.best_preproc_hp = which.min(unname(apparent_error_results))
+    }
     
     # Train graph_learner one last time with best combination and evaluate on test data 
     graph_learner$param_set$values[names_preproc] = toeval_preproc_hp_list[[ind.best_preproc_hp]][names_preproc]
@@ -219,8 +224,6 @@ get_tree_and_error_fct = function(procedure,
 
 }
   
-
-
 
 # function that returns a nested list containing the values_to_evaluate where across the lists, only one preprocessing hp varies
 get_toeval_preproc_hp_fct = function(graph_learner, 
@@ -275,8 +278,13 @@ get_stepopt_preproc_hp_fct = function(preproc_of_interest,
                                    resampling_parameters = resampling_parameters)
         return(results)
       })
-     
-    which.best_preproc_hp = which.max(sapply(tree_results, '[[', error_of_interest))
+    
+    if(resampling_parameters$eval_criterion == "regr.rsq"){
+      which.best_preproc_hp = which.max(sapply(tree_results, '[[', error_of_interest))
+    } else if(resampling_parameters$eval_criterion == "regr.rmse"){
+      which.best_preproc_hp = which.min(sapply(tree_results, '[[', error_of_interest))
+    }
+    
     ind.best_preproc_hp = logical(length(tree_results))
     ind.best_preproc_hp[which.best_preproc_hp] = TRUE
     tree_results = Map(c, tree_results, "best_preproc_hp" = ind.best_preproc_hp)
@@ -293,7 +301,12 @@ get_stepopt_preproc_hp_fct = function(preproc_of_interest,
         return(results)
       })
     
-    which.best_preproc_hp = which.max(unname(unlist(tree_results)))
+    if(resampling_parameters$eval_criterion == "regr.rsq"){
+      which.best_preproc_hp = which.max(unname(unlist(tree_results)))
+    } else if(resampling_parameters$eval_criterion == "regr.rmse"){
+      which.best_preproc_hp = which.min(unname(unlist(tree_results)))
+    }
+  
     ind.best_preproc_hp = logical(length(tree_results))
     ind.best_preproc_hp[which.best_preproc_hp] = TRUE
     
