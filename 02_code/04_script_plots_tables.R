@@ -29,7 +29,7 @@ ggplot(resdf, aes(y = test_error - eoi_value, x = procedure_short, col = procedu
   geom_boxplot()+
   theme_bw()+
   geom_hline(yintercept = 0, linetype = "dotted")+
-  labs(x = "Procedure name", col = "", y = "Reported error - test error")
+  labs(x = "Procedure name", col = "", y = "Test error - reported error ")
 ggsave("./03_results/plots/cart_bias.pdf", width = 8, height = 5)
 ggplot(resdf, aes(y = test_error, x = procedure_short, col = procedure_short))+
   geom_boxplot()+
