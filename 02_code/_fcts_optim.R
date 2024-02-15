@@ -1,17 +1,18 @@
-optim_fct = function(rep, data, id_train_list, setting,
+optim_fct = function(rep, data, id_train_list, setting_name,
                      learner_name, learners_default, learners_hp_searchspace_default,
                      preproc_default, preproc_hp_searchspace_default, preproc_hp_stepopt_order,
                      procedure, procedure_list,
                      resampling_parameters){
   # Check whether file already exists, if no -> start calculation
-  filename = paste0("./03_results/rdata/res_", paste(setting, names(which(procedure_list == procedure)), learner_name, rep, sep = "_"),".RData")
+  filename = paste0("./03_results/rdata/res_", paste(setting_name, resampling_parameters$eval_criterion,
+                                                     names(which(procedure_list == procedure)), learner_name, rep, sep = "_"),".RData")
   if(!file.exists(filename)){
   
   # 1. Train/test data
   id_train = id_train_list[[rep]]
-  data_train = data %>% filter((setting == setting) &
+  data_train = data %>% filter((setting == setting_name) &
                                             (companion_id %in% id_train))
-  data_test = data %>% filter((setting == setting) &
+  data_test = data %>% filter((setting == setting_name) &
                                            !(companion_id %in% id_train))
   stopifnot(length(intersect(data_train$companion_id, data_test$companion_id)) ==0) # make sure no ids are in both datasets
   
@@ -47,7 +48,7 @@ optim_fct = function(rep, data, id_train_list, setting,
   results$procedure = procedure
   results$learner_name = as.character(learner_name)
   results$rep = rep
-  results$setting = setting
+  results$setting = setting_name
   
   # Save result
   save(results, file = filename)
@@ -324,14 +325,14 @@ get_stepopt_preproc_hp_fct = function(preproc_of_interest,
 
 
 
-procedure_featureless_fct = function(rep, data, id_train_list, setting,
+procedure_featureless_fct = function(rep, data, id_train_list, setting_name,
                                      preproc_default,
                                      resampling_parameters){
   # 1. Train/test data
   id_train = id_train_list[[rep]]
-  data_train = data %>% filter((setting == setting) &
+  data_train = data %>% filter((setting == setting_name) &
                                  (companion_id %in% id_train))
-  data_test = data %>% filter((setting == setting) &
+  data_test = data %>% filter((setting == setting_name) &
                                 !(companion_id %in% id_train))
   stopifnot(length(intersect(data_train$companion_id, data_test$companion_id)) ==0) # make sure no ids are in both datasets
   
@@ -365,9 +366,9 @@ procedure_featureless_fct = function(rep, data, id_train_list, setting,
   result$procedure = "learner.featureless_preproc.hp.default"
   result$learner_name = "regr.featureless"
   result$rep = rep
-  result$setting = setting
+  result$setting = setting_name
   
-  filename = paste0("./03_results/rdata/res_", paste(setting, "featureless", rep, sep = "_"),".RData")
+  filename = paste0("./03_results/rdata/res_", paste(setting_name, "featureless", rep, sep = "_"),".RData")
   save(result, file = filename)
 }
 
