@@ -66,7 +66,7 @@ preproc_hp_stepopt_order = paste0(preproc_hp_stepopt_order, ".option")
 nrep = 50
 
 # Possible settings
-settings = c("sapv", "pmd", "station")
+setting_names = c("sapv", "pmd", "station")
 
 # Tuning parameters 
 resampling_parameters = list(
@@ -108,7 +108,7 @@ save(id_train_list, file = "./03_results/rdata/id_train_list.RData")
 # Run optimization ---------------------------------------------------------------------------------
 
 ## setting: sapv, leaner: cart, procedure = p0 ---- 
-setting = settings[1]
+setting_name = setting_names[1]
 learner_name = learner_names[1]
 procedure = procedure_list$p0
 
@@ -116,7 +116,7 @@ procedure = procedure_list$p0
   optim_fct(rep = x,
             data = data_phaselevel,
             id_train_list = id_train_list, 
-            setting = setting,
+            setting_name = setting_name,
             learner_name = learner_name, 
             learners_default = learners_default, 
             learners_hp_searchspace_default = learners_hp_searchspace_default,
@@ -129,7 +129,7 @@ procedure = procedure_list$p0
 })
 
 ## setting: sapv, leaner: cart, procedure = p1 ---- 
-setting = settings[1]
+setting_name = setting_names[1]
 learner_name = learner_names[1]
 procedure = procedure_list$p1
 
@@ -137,7 +137,7 @@ procedure = procedure_list$p1
   optim_fct(rep = x,
             data = data_phaselevel,
             id_train_list = id_train_list, 
-            setting = setting,
+            setting_name = setting_name,
             learner_name = learner_name, 
             learners_default = learners_default, 
             learners_hp_searchspace_default = learners_hp_searchspace_default,
@@ -151,7 +151,7 @@ procedure = procedure_list$p1
 
 
 ## setting: sapv, leaner: cart, procedure = p2a ---- 
-setting = settings[1]
+setting_name = setting_names[1]
 learner_name = learner_names[1]
 procedure = procedure_list$p2a
 
@@ -159,7 +159,7 @@ procedure = procedure_list$p2a
   optim_fct(rep = x,
             data = data_phaselevel,
             id_train_list = id_train_list, 
-            setting = setting,
+            setting_name = setting_name,
             learner_name = learner_name, 
             learners_default = learners_default, 
             learners_hp_searchspace_default = learners_hp_searchspace_default,
@@ -174,7 +174,7 @@ procedure = procedure_list$p2a
 
 
 ## setting: sapv, leaner: cart, procedure = p2b ---- 
-setting = settings[1]
+setting_name = setting_names[1]
 learner_name = learner_names[1]
 procedure = procedure_list$p2b
 
@@ -182,7 +182,7 @@ procedure = procedure_list$p2b
   optim_fct(rep = x,
             data = data_phaselevel,
             id_train_list = id_train_list, 
-            setting = setting,
+            setting_name = setting_name,
             learner_name = learner_name, 
             learners_default = learners_default, 
             learners_hp_searchspace_default = learners_hp_searchspace_default,
@@ -195,7 +195,7 @@ procedure = procedure_list$p2b
 })
 
 ## setting: sapv, leaner: cart, procedure = p2c ---- 
-setting = settings[1]
+setting_name = setting_names[1]
 learner_name = learner_names[1]
 procedure = procedure_list$p2c
 
@@ -203,7 +203,7 @@ procedure = procedure_list$p2c
   optim_fct(rep = x,
             data = data_phaselevel,
             id_train_list = id_train_list, 
-            setting = setting,
+            setting_name = setting_name,
             learner_name = learner_name, 
             learners_default = learners_default, 
             learners_hp_searchspace_default = learners_hp_searchspace_default,
@@ -216,7 +216,7 @@ procedure = procedure_list$p2c
 })
 
 ## setting: sapv, leaner: cart, procedure = p3 ---- 
-setting = settings[1]
+setting_name = setting_names[1]
 learner_name = learner_names[1]
 procedure = procedure_list$p3
 
@@ -224,7 +224,7 @@ procedure = procedure_list$p3
   optim_fct(rep = x,
             data = data_phaselevel,
             id_train_list = id_train_list, 
-            setting = setting,
+            setting_name = setting_name,
             learner_name = learner_name, 
             learners_default = learners_default, 
             learners_hp_searchspace_default = learners_hp_searchspace_default,
@@ -237,12 +237,12 @@ procedure = procedure_list$p3
 })
 
 # Add featureless learner results for each repetition ----------------------------------------------
-setting = settings[1]
+setting_name = setting_names[1]
 1:nrep %>% purrr::walk(.f = function(x) {
   procedure_featureless_fct(rep = x,
                             data = data_phaselevel,
                             id_train_list = id_train_list, 
-                            setting = setting,
+                            setting_name = setting_name,
                             preproc_default = preproc_default,
                             resampling_parameters = resampling_parameters)
 })
