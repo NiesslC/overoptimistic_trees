@@ -4,7 +4,7 @@ library(dplyr)
 # Load results df ----------------------------------------------------------------------------------
 load("./03_results/rdata/_resdf.RData")
 
-# Plot consistency of estimates --------------------------------------------------------------------
+# Plot cummean of estimates --------------------------------------------------------------------
 estimatesvar= resdf %>% group_by(procedure_short) %>%
   arrange(rep) %>%
   mutate(cummean_test_error = cummean(test_error), 
@@ -14,14 +14,14 @@ ggplot(estimatesvar, aes(x = rep, y = cummean_test_error, col = procedure_short)
   geom_line()+
   theme_bw()+
   facet_wrap(~procedure_short, scales = "free")
-ggsave("./03_results/plots/consistency_testerror.pdf", width = 10, height = 5)
+ggsave("./03_results/plots/cummean_testerror.pdf", width = 10, height = 5)
 
 ggplot(estimatesvar, aes(x = rep, y = cummean_bias, col = procedure_short))+
   geom_point()+
   geom_line()+
   theme_bw()+
   facet_wrap(~procedure_short, scales = "free")
-ggsave("./03_results/plots/consistency_bias.pdf", width = 10, height = 5)
+ggsave("./03_results/plots/cummean_bias.pdf", width = 10, height = 5)
 
 
 # Plot errors --------------------------------------------------------------------------------------
