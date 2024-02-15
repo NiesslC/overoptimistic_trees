@@ -107,7 +107,6 @@ save(id_train_list, file = "./03_results/rdata/id_train_list.RData")
 
 # Run optimization ---------------------------------------------------------------------------------
 
-
 ## setting: sapv, leaner: cart, procedure = p0 ---- 
 setting = settings[1]
 learner_name = learner_names[1]
@@ -237,8 +236,24 @@ procedure = procedure_list$p3
             resampling_parameters = resampling_parameters)
 })
 
+# Add featureless learner results for each repetition ----------------------------------------------
+setting = settings[1]
+1:nrep %>% purrr::walk(.f = function(x) {
+  procedure_featureless_fct(rep = x,
+                            data = data_phaselevel,
+                            id_train_list = id_train_list, 
+                            setting = setting,
+                            preproc_default = preproc_default,
+                            resampling_parameters = resampling_parameters)
+})
+
 # To Do: -------------------------------------------------------------------------------------------
-# - Add Vergleich featureless prediction!
+# - Extract errors [(i) reported error and (ii) test set error] (results aufbereiten als datensatz)
+# - check that correct vars have been used via graph_learner_tuned$model$lrn_glmertree_if$model$formula
+# t =res_sapv_p1[[1]]$graph_learner_tuned
+# t$graph_learner_tuned$param_set
+# t$model$lrn_rpart$train_task
+
 
 # - Function descriptions
 # - Implement procedure where learner choice is also tunable 
