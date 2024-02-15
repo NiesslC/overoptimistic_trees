@@ -324,6 +324,54 @@ get_stepopt_preproc_hp_fct = function(preproc_of_interest,
 
 
 
+procedure_featureless_fct = function(rep, data, id_train_list, setting,
+                                     preproc_default,
+                                     resampling_parameters){
+  # 1. Train/test data
+  id_train = id_train_list[[rep]]
+  data_train = data %>% filter((setting == setting) &
+                                 (companion_id %in% id_train))
+  data_test = data %>% filter((setting == setting) &
+                                !(companion_id %in% id_train))
+  stopifnot(length(intersect(data_train$companion_id, data_test$companion_id)) ==0) # make sure no ids are in both datasets
+  
+  # 2. Specify task
+  task = as_task_regr(data_train, target = "targetvar")
+  # specify companion_id as grouping variable bc observations from same id should not be split when resampling
+  # = group by id 
+  task$col_roles$group = "companion_id"
+  rm(data_train)
+  
+  # 3. Specify graph_learner (combination of preprocessing pipeline and featureless lerner)
+  
+  # clone all necessary objects (must not alter the input objects!)
+  learner = lrn("regr.featureless")
+  preproc = preproc_default$clone(deep = TRUE) # preprocessing 
+  
+  # graph learner
+  graph_learner = as_learner(preproc %>>%  # preprocessing pipeline
+                               learner) # currently selected learner
+  
+  # 4. Train featureless learner and get errors
+  graph_learner$train(task)
+  apparent_error = graph_learner$predict(task)$score(msr(resampling_parameters$eval_criterion))
+  test_error = graph_learner$predict_newdata(data_test)$score(msr(resampling_parameters$eval_criterion))
+  
+  result = list("graph_learner" = graph_learner,
+                "apparent_error" = apparent_error,
+                "test_error" = test_error)
+  
+  # Add information on procedure, learner_name and repetition
+  result$procedure = "learner.featureless_preproc.hp.default"
+  result$learner_name = "regr.featureless"
+  result$rep = rep
+  result$setting = setting
+  
+  filename = paste0("./03_results/rdata/res_", paste(setting, "featureless", rep, sep = "_"),".RData")
+  save(result, file = filename)
+}
+
+
 
 
 
