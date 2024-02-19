@@ -38,9 +38,9 @@ preproc_default = po("preproc.target") %>>%
   po("preproc.drop.iposca") %>>%
   po("preproc.feature.ipos") %>>% 
   po("preproc.feature.age") %>>% 
-  po("preproc.feature.akps")#%>>% 
-#po("fixfactors", affect_columns = selector_grep("palliativephase|ipos|age|cogn|akps"))  
-# (affect columns is important for fixfactors because otherwise new companion_ids in predict would be removed)
+  po("preproc.feature.akps")%>>% 
+  po("fixfactors.overwhelmingly") # if overwhelmingly was not present in train for ipos_pain or ipos_shortness_breath,
+                                  # it is set to "severly" for prediction (only occurs for nested resampling)                                  
 
 #examplegraph =preproc_default %>>% lrn("regr.rpart", id = "learner")
 #examplegraph$plot(html = TRUE)
@@ -254,6 +254,7 @@ setting_name = setting_names[1]
 # t$graph_learner_tuned$param_set
 # t$model$lrn_rpart$train_task
 
+# again check that same id train test splits were used 
 
 # - Function descriptions
 # - Implement procedure where learner choice is also tunable 
