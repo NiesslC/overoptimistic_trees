@@ -67,7 +67,7 @@ get_tree_and_error_fct = function(procedure,
                                   data_test, 
                                   resampling_parameters){
   
-  ## I) Procedures  involving tuning but no stepwise optimization) ---------------------------------
+  ## I) Procedures involving tuning but no stepwise optimization) ---------------------------------
 
   if(procedure %in% c("learner.hp.tune_preproc.hp.default", "learner.hp.tune_preproc.hp.tune")) {
 
@@ -368,7 +368,8 @@ procedure_featureless_fct = function(rep, data, id_train_list, setting_name,
   result$rep = rep
   result$setting = setting_name
   
-  filename = paste0("./03_results/rdata/res_", paste(setting_name, "featureless", rep, sep = "_"),".RData")
+  filename = paste0("./03_results/rdata/res_", paste(setting_name, resampling_parameters$eval_criterion, 
+                                                     "featureless", rep, sep = "_"),".RData")
   save(result, file = filename)
 }
 
