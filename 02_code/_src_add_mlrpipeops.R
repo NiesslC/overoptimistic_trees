@@ -179,3 +179,64 @@ PipeOpDropIposCa = R6::R6Class("PipeOpDropIposCa",
 )
 
 mlr_pipeops$add("preproc.drop.iposca", PipeOpDropIposCa)
+
+
+# fixfactors.overwhelmingly ----
+PipeOpFixFactorsOverwhelmingly   = R6Class("PipeOpFixFactorsOverwhelmingly",
+                           inherit = PipeOpTaskPreprocSimple,
+                           public = list(
+                             initialize = function(id = "fixfactors.overwhelmingly", param_vals = list()) {
+                               ps = ParamSet$new(params = list(
+                                 ParamLgl$new("droplevels", tags = c("train", "predict"))
+                               ))
+                               ps$values = list(droplevels = TRUE)
+                               super$initialize(id, param_set = ps, param_vals = param_vals, tags = "robustify", feature_types = c("factor", "ordered"))
+                             }
+                           ),
+                           private = list(
+                             .get_state = function(task) {
+                               # get the ipos_shortness_breath and ipos_pain levels of the training task if feature is present
+                               if(any(grepl("ipos_shortness_breath|ipos_pain", task$feature_names))){
+                                 dt = task$data(cols = task$feature_names[grep("ipos_shortness_breath|ipos_pain", task$feature_names )])
+                                 
+                                 if (self$param_set$values$droplevels && nrow(dt)) {  # nrow(dt): workaround for https://github.com/Rdatatable/data.table/issues/5184
+                                   dt = droplevels(dt)
+                                 }
+                                 list(levels = lapply(dt, function(x) levels(x)))  # explicitly access the "levels" function
+                               } #else{
+                               #list(NULL)
+                               # }
+                               
+                             },
+                             
+                             .transform = function(task) {
+                               if(any(grepl("ipos_shortness_breath|ipos_pain", task$feature_names))){
+                                 dt = task$data(cols = task$feature_names[grep("ipos_shortness_breath|ipos_pain", task$feature_names )])
+                                 
+                                 # check which levels are actually different during training and prediction
+                                 needs_adjustment = as.logical(imap(self$state$levels, function(lvx, id) {
+                                   
+                                   all.equal(setdiff(levels(dt[[id]]), lvx), "overwhelmingly") == TRUE
+                                   
+                                   
+                                 }))
+                                 
+                                 if (!any(needs_adjustment)) {
+                                   return(task)
+                                 }
+                                 
+                                 changed_cols = as.data.table(imap(self$state$levels[needs_adjustment], function(lvx, id) {
+                                   x = dt[[id]] 
+                                   fct_collapse(x, severely = c("severely", "overwhelmingly"))
+                                   
+                                 }))
+                                 task$select(setdiff(task$feature_names, colnames(changed_cols)))$cbind(changed_cols)
+                               } else{
+                                 return(task)
+                               }
+                               
+                             }
+                           )
+)
+
+mlr_pipeops$add("fixfactors.overwhelmingly", PipeOpFixFactorsOverwhelmingly)
