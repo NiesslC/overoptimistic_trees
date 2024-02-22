@@ -105,6 +105,8 @@ id_train_list = 1:nrep %>% map(function(x) data_phaselevel %>% distinct(companio
                                  slice_sample(prop = 0.5) %>% .$companion_id)
 save(id_train_list, file = "./03_results/rdata/id_train_list.RData")
 
+
+
 # Run optimization ---------------------------------------------------------------------------------
 
 ## setting: sapv, leaner: cart, procedure = p0 ---- 
@@ -248,7 +250,6 @@ setting_name = setting_names[1]
 })
 
 # To Do: -------------------------------------------------------------------------------------------
-# - Extract errors [(i) reported error and (ii) test set error] (results aufbereiten als datensatz)
 # - check that correct vars have been used via graph_learner_tuned$model$lrn_glmertree_if$model$formula
 # t =res_sapv_p1[[1]]$graph_learner_tuned
 # t$graph_learner_tuned$param_set
@@ -258,17 +259,10 @@ setting_name = setting_names[1]
 
 # - Function descriptions
 # - Implement procedure where learner choice is also tunable 
-# - Do we need all functions in learner_helpers benötigt?
+# - Do we need all functions in learner_helpers?
 # - Add info on R package versions (also for those called when using invoke()?)
 # - glmertree_if singular boundary warning, other algorithms also affected? store warnings somewhere?
-# - Check behavior of learners when new (ordered) factors in test data 
-#   -> need fixfactors pipeop? (but currently throws error)
-#   -> behavior of learners when missing values (resulting from fixfactors)
 
 
-# Note on po("fixfactors")
-# "Fixes factors of type factor, ordered: Makes sure the factor levels during prediction are the same
-#  as during training; possibly dropping empty training factor levels before. 
-#  Note this may introduce missing values during prediction if unseen factor levels are found."
-# -> in case of rpart, this does not lead to missing values during prediction; instead, rpart
-#    basically interpolates or extrapolates; it seems as if the surrogate splits are not used (?)
+
+
