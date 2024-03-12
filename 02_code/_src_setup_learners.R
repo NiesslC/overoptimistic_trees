@@ -139,6 +139,9 @@ learners_default = list(lrn_cart,lrn_ctree,lrn_lmertree_it,lrn_lmertree_i,lrn_lm
 names(learners_default) = c("lrn_cart","lrn_ctree","lrn_lmertree_it","lrn_lmertree_i","lrn_lmertree_t", "lrn_reemtree_it",
                          "lrn_reemtree_i","lrn_reemtree_t","lrn_reemctree_it","lrn_reemctree_i","lrn_reemctree_t")
 
+# only use subset of all initially specified learners (not those with _it and _i) -> 5 learners in total
+learners_default = learners_default[c("lrn_cart","lrn_ctree","lrn_lmertree_t","lrn_reemtree_t","lrn_reemctree_t")]
+
 # Generate list of search spaces for tunable hps ----
 lrn_cart.hp$tunable$set_id = "lrn_cart"
 lrn_ctree.hp$tunable$set_id = "lrn_ctree"
@@ -168,27 +171,4 @@ rm(# parameters
    "lrn_ctree", "lrn_lmertree_t","lrn_lmertree_i","lrn_lmertree_it","lrn_reemctree_t","lrn_reemctree_i",
    "lrn_reemctree_it","lrn_reemtree_t","lrn_reemtree_i","lrn_reemtree_it","lrn_cart")
 
-#################################################################
-# search_space1 = ps(
-#   regr.rpart.cp = p_dbl(lower = 4, 
-#                         upper = 5)
-# )
-# search_space2 = ps(
-#   regr.rpart.minbucket = p_int(lower = 3, 
-#                                upper = 3)
-# )
-# search_space = ps(
-#   regr.rpart.minbucket = p_int(lower = 3, 
-#                                upper = 3),
-#   regr.rpart.cp = p_dbl(lower = 4, 
-#                         upper = 5)
-# )
-# search_space2$add(search_space1)
-# 
-# names(search_space1$lower)
-# search_space$lower
-# search_space$assert_values()
-# 
-# 
-# all.equal(tuner_params,
-# search_space)
+
