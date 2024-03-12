@@ -73,9 +73,9 @@ resampling_parameters = list(
   eval_criterion = "regr.rmse", # "regr.rsq", 
   n_evals_learn_hp = 50,
   n_evals_learnandpreproc_hp = 500,
-  folds_cv = 5, 
-  inner_folds_nestedcv = 2, 
-  outer_folds_nestedcv = 5,
+  folds_cv = 10, 
+  inner_folds_nestedcv = 3, 
+  outer_folds_nestedcv = 10,
   outer_repeats = 1, 
   seed_resampling = 1705410730,
   seed_nestedresampling = 1705419930
@@ -84,7 +84,7 @@ resampling_parameters = list(
 # Optimization procedures 
 procedure_list = list(
   ## learner.hyperparam: manually select value most prone to overfitting, preproc: try all combinations, error: apparent
-  "p0" = "learner.hp.maxoverfit_preproc.hp.allcombinations_error.apparent",
+  ##"p0" = "learner.hp.maxoverfit_preproc.hp.allcombinations_error.apparent",
   ## learner.hyperparam: default, preproc.hyperparam: resampling, error: apparent+resampling+nested
   "p1" = "learner.hp.tune_preproc.hp.default",
   ## learner.hyperparam: resampling, preproc.hyperparam: stepwise optimization, error: apparent
@@ -92,7 +92,7 @@ procedure_list = list(
   ## learner.hyperparam: resampling, preproc.hyperparam: stepwise optimization, error: resampling
   "p2b" = "learner.hp.tune_preproc.hp.steopt_error.resampling",
   ## learner.hyperparam: resampling, preproc.hyperparam: stepwise optimization, error: nested resampling
-  "p2c" = "learner.hp.tune_preproc.hp.steopt_error.nested_resampling",
+  ## "p2c" = "learner.hp.tune_preproc.hp.steopt_error.nested_resampling",
   ## learner.hyperparam: resampling, preproc.hyperparam: resampling, error: apparent+resampling+nested
   "p3" = "learner.hp.tune_preproc.hp.tune"
 )
@@ -109,26 +109,9 @@ save(id_train_list, file = "./03_results/rdata/id_train_list.RData")
 
 # Run optimization ---------------------------------------------------------------------------------
 
-## setting: sapv, leaner: cart, procedure = p0 ---- 
-setting_name = setting_names[1]
-learner_name = learner_names[1]
-procedure = procedure_list$p0
+# Factors: learners, procedures 
+# Additional: Initial splitting, sample size, performance meausres
 
-1:nrep %>% purrr::walk(.f = function(x) {
-  optim_fct(rep = x,
-            data = data_phaselevel,
-            id_train_list = id_train_list, 
-            setting_name = setting_name,
-            learner_name = learner_name, 
-            learners_default = learners_default, 
-            learners_hp_searchspace_default = learners_hp_searchspace_default,
-            preproc_default = preproc_default, 
-            preproc_hp_searchspace_default = preproc_hp_searchspace_default, 
-            preproc_hp_stepopt_order = preproc_hp_stepopt_order,
-            procedure = procedure, 
-            procedure_list = procedure_list,
-            resampling_parameters = resampling_parameters)
-})
 
 ## setting: sapv, leaner: cart, procedure = p1 ---- 
 setting_name = setting_names[1]
@@ -196,26 +179,6 @@ procedure = procedure_list$p2b
             resampling_parameters = resampling_parameters)
 })
 
-## setting: sapv, leaner: cart, procedure = p2c ---- 
-setting_name = setting_names[1]
-learner_name = learner_names[1]
-procedure = procedure_list$p2c
-
-1:nrep %>% purrr::walk(.f = function(x) {
-  optim_fct(rep = x,
-            data = data_phaselevel,
-            id_train_list = id_train_list, 
-            setting_name = setting_name,
-            learner_name = learner_name, 
-            learners_default = learners_default, 
-            learners_hp_searchspace_default = learners_hp_searchspace_default,
-            preproc_default = preproc_default, 
-            preproc_hp_searchspace_default = preproc_hp_searchspace_default, 
-            preproc_hp_stepopt_order = preproc_hp_stepopt_order,
-            procedure = procedure, 
-            procedure_list = procedure_list,
-            resampling_parameters = resampling_parameters)
-})
 
 ## setting: sapv, leaner: cart, procedure = p3 ---- 
 setting_name = setting_names[1]
