@@ -1,31 +1,31 @@
 resampling_fct = function(task,
-                        data_test,
-                        graph_learner, 
-                        search_space,
-                        resampling_parameters){
+                          data_test,
+                          split_type = c("naive", "teams"),
+                          graph_learner, 
+                          search_space,
+                          resampling_parameters){
   
-  # Choose number of evaluations depending on whether only HPs of learner or learner + preprocessing are considered
-  if(any(grepl("preproc.",search_space$ids()))){
-    n_evals = resampling_parameters$n_evals_learnandpreproc_hp
-  } else{
-    n_evals = resampling_parameters$n_evals_learn_hp
-  }
     
-
   # Set seed
   set.seed(resampling_parameters$seed_resampling)
   
   # Specify tuner and terminator ----
-  #tuner = tnr("grid_search", resolution = resampling_parameters$resolution) # grid search, resolution of the grid 
-  tuner = tnr("random_search", batch_size = n_evals) 
+  tuner = tnr("random_search", batch_size = length(search_space$ids())*resampling_parameters$terminator_k) # for efficiency, batch_size = number of evaluations
   
-  terminator = trm("evals", n_evals = n_evals) # stop searching after n_evals evaluations
+  terminator = trm("evals", n_evals = 0, k = resampling_parameters$terminator_k) # stop searching after (k*number of HPs) evaluations
   
+  # Specify resampling strategy ----
+  if(split_type == "naive"){
+    resampling = rsmp("cv", folds = resampling_parameters$folds_cv)
+  } else if(split_type == "teams"){
+    resampling = rsmp("loo")
+  }
+
   # Tune parameters using cross-validation ---
   instance = TuningInstanceSingleCrit$new(
     task = task,
     learner = graph_learner,
-    resampling =  rsmp("cv", folds = resampling_parameters$folds_cv), 
+    resampling =  resampling,
     measure = msr(resampling_parameters$eval_criterion),
     search_space = search_space,
     terminator = terminator
@@ -57,26 +57,25 @@ resampling_fct = function(task,
 
 
 nested_resampling_fct = function(task,
+                                 split_type = c("naive", "teams"),
                                  graph_learner, 
                                  search_space,
                                  resampling_parameters){
-  
-  # Choose number of evaluations depending on whether only HPs of learner or learner + preprocessing are considered
-  if(any(grepl("preproc.",search_space$ids()))){
-    n_evals = resampling_parameters$n_evals_learnandpreproc_hp
-  } else{
-    n_evals = resampling_parameters$n_evals_learn_hp
-  }
   
   # Set seed
   set.seed(resampling_parameters$seed_nestedresampling)
   
   # Specify nested resampling scheme (tuner, terminator, inner and outer resampling etc.)
-  # tuner = tnr("grid_search", resolution = resampling_parameters$resolution) # grid search, resolution of the grid = 50
-  tuner = tnr("random_search", batch_size = n_evals) 
-  terminator = trm("evals", n_evals = n_evals) # stop searching after n_evals evaluations
-  inner_resampling = rsmp("cv", folds = resampling_parameters$inner_folds_nestedcv) # number of inner folds
-  outer_resampling = rsmps("repeated_cv", repeats = resampling_parameters$outer_repeats, folds = resampling_parameters$outer_folds_nestedcv)
+  tuner = tnr("random_search", batch_size = length(search_space$ids())*resampling_parameters$terminator_k) # for efficiency, batch_size = number of evaluations
+  terminator = trm("evals", n_evals = 0, k = resampling_parameters$terminator_k) # stop searching after (k*number of HPs) evaluations
+  
+  if(split_type == "naive"){
+    inner_resampling = rsmp("cv", folds = resampling_parameters$inner_folds_nestedcv) 
+    outer_resampling = rsmp("cv", folds = resampling_parameters$outer_folds_nestedcv)
+  } else if(split_type == "teams"){
+    inner_resampling = rsmp("loo") 
+    outer_resampling = rsmp("loo")
+  }
   
   graph_learner_tune = auto_tuner(
     tuner = tuner,
