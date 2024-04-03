@@ -16,20 +16,20 @@ PipeOpPreprocTarget = R6::R6Class("PipeOpPreprocTarget",
                                   private = list(
                                     
                                     .train_dt = function(dt, levels, target) {
-                                      correction_factors = preprocess_target_getcorr_fct(data = dt, 
+                                      correction_factor = preprocess_target_getcorr_fct(data = dt, 
                                                                                          option = self$param_set$values$option)
                                       self$state = list(
-                                        correction_factors = correction_factors
+                                        correction_factor = correction_factor
                                       )
                                       preprocess_target_fct(data = dt,
                                                             option=self$param_set$values$option, 
-                                                            correction_factors = correction_factors)                                  
+                                                            correction_factor = correction_factor)                                  
                                     },
                                     
                                     .predict_dt = function(dt, levels) {
                                       preprocess_target_fct(data = dt,
                                                             option=self$param_set$values$option, 
-                                                            correction_factors = self$state$correction_factors)   
+                                                            correction_factor = self$state$correction_factor)   
                                     }
                                   )
 )
