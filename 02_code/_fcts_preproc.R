@@ -38,7 +38,7 @@ preprocess_drop_targetout_fct = function(target_values, option){
 
 
 
-preprocess_target_fct = function(data, option, correction_factors){
+preprocess_target_fct = function(data, option, correction_factor){
   
   # Select target variable
   if(option == "A"){
@@ -58,9 +58,8 @@ preprocess_target_fct = function(data, option, correction_factors){
     sum_target_day_geq2 = "sum_minutes_day_geq2"
     
   }
-  # Add correction factors to data (if there is no correction factor for a team id in data, set cf to 1)
-  data = left_join(data, correction_factors, by = c("setting", "team_id")) %>%
-    mutate(correction_factor = ifelse(is.na(correction_factor), 1, correction_factor))
+  # Add correction factor to data 
+  data$correction_factor = correction_factor
   
   # Calculate target variable 
   # (note that sum_target_day_geq2 can be NA if phase only lasts one day)
@@ -101,20 +100,21 @@ preprocess_target_getcorr_fct = function(data, option){
     sum_target_day_1 = "sum_minutes_day_1"
   }
   
-  # Calculate correction factors
+  # Calculate correction factor as mean of team specific correction factors
   means_firstday = data %>%
     mutate(number_phase = ifelse(grp == 0, "phase_1", "phase_geq2")) %>%
     group_by(setting, team_id, number_phase) %>% # calculate mean separately for phase no. = 1 vs. >= 2
     summarise(mean_sum_target_day_1 = mean(.data[[sum_target_day_1]]), .groups = "drop_last") %>% 
     ungroup()
-  correction_factors = means_firstday %>% 
+  team_correction_factors = means_firstday %>% 
     spread(number_phase, mean_sum_target_day_1) %>%
     mutate(correction_factor = ifelse(phase_geq2/phase_1 < 1,
                                            phase_geq2/phase_1,1)) %>%
     select(-phase_1, -phase_geq2)
   
+  correction_factor = mean(team_correction_factors$correction_factor)
  
-  return(correction_factors)
+  return(correction_factor)
 }
 
 
