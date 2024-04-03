@@ -165,6 +165,8 @@ stopifnot(sum(map2(train_50_sapv_teams, test_sapv_teams, intersect) %>% map_dbl(
 stopifnot(sum(map2(train_25_sapv_teams, test_sapv_teams, intersect) %>% map_dbl(length))==0) 
 
 save(id_split_sapv_list, file = "./03_results/rdata/id_split_sapv_list.RData")
+rm(train_25_sapv_naive, train_25_sapv_teams, train_50_sapv_naive, train_50_sapv_teams,
+   train_teams, test_sapv_naive, test_sapv_teams)
 
 # check
 # test=data_phaselevel %>% mutate(t1 = ifelse(companion_id_grp %in% train_50_sapv_naive[[1]], 0,1),
