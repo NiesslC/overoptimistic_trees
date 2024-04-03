@@ -1,7 +1,7 @@
 # Set up learners ----
 lrn_cart = lrn("regr.rpartMod", id = "lrn_cart")
 lrn_ctree = lrn("regr.ctreeMod", id = "lrn_ctree")
-lrn_lmertree_it = lrn("regr.glmertree", id = "lrn_lmertree_it")
+lrn_lmertree_it = lrn("regr.glmertree", id = "lrn_lmertree_it") # singular boundary warning
 lrn_lmertree_i = lrn("regr.glmertree", id = "lrn_lmertree_i")
 lrn_lmertree_t = lrn("regr.glmertree", id = "lrn_lmertree_t")
 lrn_reemtree_it = lrn("regr.reemtree", id = "lrn_reemtree_it")
@@ -14,7 +14,7 @@ lrn_reemctree_t = lrn("regr.reemctree", id = "lrn_reemctree_t")
 # Set up learner hyperparameters (fixed and tunable) ----
 cp_lower = 0.001
 cp_upper = 0.1
-minbucket_lower = 10
+minbucket_lower = 5
 minbucket_upper = 20
 alpha_lower = 0.01 
 alpha_upper = 0.1
@@ -22,6 +22,7 @@ mincriterion_upper = 1-alpha_lower
 mincriterion_lower = 1-alpha_upper
 include.partitioning.vars_expr = "palliativephase|ipos|age|cogn|akps"
 maxdepth = 4
+minsplit = 20 
 
 tunable_hp_ps.cp_minbucket = paradox::ps(
   cp = p_dbl(cp_lower, cp_upper),
@@ -44,6 +45,7 @@ lrn_cart.hp = list(
   fixed = list( 
     include.partitioning.vars_expr = include.partitioning.vars_expr,
     maxdepth = maxdepth,
+    minsplit = minsplit,
     xval = 0),  
   tunable = tunable_hp_ps.cp_minbucket$clone()
 )
@@ -51,7 +53,8 @@ lrn_cart.hp = list(
 lrn_ctree.hp = list(
   fixed = list( 
     include.partitioning.vars_expr = include.partitioning.vars_expr,
-    maxdepth = maxdepth),
+    maxdepth = maxdepth,
+    minsplit = minsplit),
   tunable = tunable_hp_ps.alpha_minbucket$clone()
 )
 
@@ -61,7 +64,8 @@ lrn_lmertree_it.hp = list(
     formula.random = "(1|team_id/companion_id)",
     include.partitioning.vars_expr = include.partitioning.vars_expr,
     re.form = NA,
-    maxdepth = maxdepth),
+    maxdepth = maxdepth,
+    minsplit = minsplit),
   tunable = tunable_hp_ps.alpha_minbucket$clone()
 )
 ## lrn_lmertree_i
@@ -83,7 +87,8 @@ lrn_reemtree_it.hp = list(
     grouping = "", 
     EstimateRandomEffects = FALSE, 
     cv = FALSE,
-    maxdepth = maxdepth),
+    maxdepth = maxdepth,
+    minsplit = minsplit),
   tunable = tunable_hp_ps.cp_minbucket$clone()
 )
 
@@ -103,7 +108,8 @@ lrn_reemctree_it.hp = list(
   fixed = list( 
     include.partitioning.vars_expr = include.partitioning.vars_expr,
     random = ~1|team_id/companion_id,
-    maxdepth = maxdepth),
+    maxdepth = maxdepth,
+    minsplit = minsplit),
   tunable = tunable_hp_ps.mincriterion_minbucket$clone()
 )
 ## lrn_reemctree_i
@@ -163,7 +169,7 @@ names(learners_hp_searchspace_default) = names(learners_default)
 rm(# parameters 
   "tunable_hp_ps.alpha_minbucket","tunable_hp_ps.cp_minbucket","tunable_hp_ps.mincriterion_minbucket",
    "minbucket_lower","minbucket_upper","mincriterion_lower","mincriterion_upper",
-   "alpha_lower","alpha_upper","cp_lower","cp_upper", "include.partitioning.vars_expr","maxdepth",
+   "alpha_lower","alpha_upper","cp_lower","cp_upper", "include.partitioning.vars_expr","maxdepth","minsplit",
    # hp lists
    "lrn_ctree.hp","lrn_lmertree_t.hp","lrn_lmertree_i.hp","lrn_lmertree_it.hp","lrn_reemctree_t.hp","lrn_reemctree_i.hp",
    "lrn_reemctree_it.hp","lrn_reemtree_t.hp","lrn_reemtree_i.hp","lrn_reemtree_it.hp","lrn_cart.hp",
