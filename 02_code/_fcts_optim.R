@@ -1,26 +1,40 @@
-optim_fct = function(rep, data, id_train_list, setting_name,
+optim_fct = function(rep, data, id_split_list, 
+                     sample_size = c("sample50", "sample25"), 
+                     setting_name = c("sapv", "pmd", "station"), 
+                     split_type = c("naive", "teams"),
+                     eval_criterion, 
                      learner_name, learners_default, learners_hp_searchspace_default,
                      preproc_default, preproc_hp_searchspace_default, preproc_hp_stepopt_order,
                      procedure, procedure_list,
                      resampling_parameters){
   # Check whether file already exists, if no -> start calculation
-  filename = paste0("./03_results/rdata/res_", paste(setting_name, resampling_parameters$eval_criterion,
+  filename = paste0("./03_results/rdata/res_", paste(setting_name, split_type, sample_size, resampling_parameters$eval_criterion,
                                                      names(which(procedure_list == procedure)), learner_name, rep, sep = "_"),".RData")
   if(!file.exists(filename)){
   
-  # 1. Train/test data
-  id_train = id_train_list[[rep]]
-  data_train = data %>% filter((setting == setting_name) &
-                                            (companion_id %in% id_train))
-  data_test = data %>% filter((setting == setting_name) &
-                                           !(companion_id %in% id_train))
-  stopifnot(length(intersect(data_train$companion_id, data_test$companion_id)) ==0) # make sure no ids are in both datasets
-  
+  # 1. Train/test data 
+  if(split_type == "naive"){
+    data_test = data %>% filter((setting == setting_name) & companion_id_grp %in% id_split_list$test_naive[[rep]])
+    if(sample_size == "sample50"){
+      data_train = data %>% filter((setting == setting_name) & companion_id_grp %in% id_split_list$train_50_naive[[rep]])
+    } else if(sample_size == "sample25"){
+      data_train = data %>% filter((setting == setting_name) & companion_id_grp %in% id_split_list$train_25_naive[[rep]])
+    }
+  } else if(split_type == "teams"){
+    data_test = data %>% filter((setting == setting_name) & companion_id_grp %in% id_split_list$test_teams[[rep]])
+    if(sample_size == "sample50"){
+      data_train = data %>% filter((setting == setting_name) & companion_id_grp %in% id_split_list$train_50_teams[[rep]])
+    } else if(sample_size == "sample25"){
+      data_train = data %>% filter((setting == setting_name) & companion_id_grp %in% id_split_list$train_25_teams[[rep]])
+    }
+  }
+  stopifnot(length(intersect(data_train$companion_id_grp, data_test$companion_id_grp)) ==0) # check that no phases (=id_grps) are in both datasets
+  stopifnot((length(unique(data_train$setting)) == 1) & (length(unique(data_test$setting)) == 1)) # check that only one palliative care setting is considered
   # 2. Specify task
   task = as_task_regr(data_train, target = "targetvar")
-  # specify companion_id as grouping variable bc observations from same id should not be split when resampling
-  # = group by id 
-  task$col_roles$group = "companion_id"
+  if(split_type == "teams"){   # if specified, set team_id as grouping variable -> not split when resampling
+    task$col_roles$group = "team_id"
+  }
   rm(data_train)
   
   # 3. Specify graph_learner (combination of preprocessing pipeline and learner)
@@ -35,7 +49,10 @@ optim_fct = function(rep, data, id_train_list, setting_name,
   graph_learner = as_learner(preproc %>>%  # preprocessing pipeline
                                learner) # currently selected learner
   
-  # 4. Optimize hps and get corresponding tree and error values
+  # 4. Add eval criterion to resampling parameters
+  resampling_parameters = list_modify(resampling_parameters, eval_criterion = eval_criterion)
+  
+  # 5. Optimize hps and get corresponding tree and error values
   results = get_tree_and_error_fct(procedure = procedure, 
                                    graph_learner = graph_learner,
                                    learner_hp_searchspace = learner_hp_searchspace,
@@ -44,11 +61,15 @@ optim_fct = function(rep, data, id_train_list, setting_name,
                                    task = task, 
                                    data_test = data_test, 
                                    resampling_parameters = resampling_parameters)
+  
   # Add information on procedure, learner_name and repetition
   results$procedure = procedure
   results$learner_name = as.character(learner_name)
   results$rep = rep
   results$setting = setting_name
+  results$sample_size = sample_size
+  results$split_type = split_type
+  results$eval_criterion = eval_criterion
   
   # Save result
   save(results, file = filename)
@@ -66,10 +87,39 @@ get_tree_and_error_fct = function(procedure,
                                   task,
                                   data_test, 
                                   resampling_parameters){
+  ## 0) Default procedures ------------------------------------------------------------------------
+  if(procedure == "learner.hp.default_preproc.hp.default") {
+   
+    set.seed(resampling_parameters$seed_resampling)
+    # Specify resampling strategy ----
+    if(split_type == "naive"){
+      resampling = rsmp("cv", folds = resampling_parameters$folds_cv)
+    } else if(split_type == "teams"){
+      resampling = rsmp("loo")
+    }
+    
+    # Train learner
+    graph_learner$train(task)
+    
+    # Predict + Calculate apparent and resampling error on train data set ----
+    apparent_error = graph_learner$predict(task)$score(msr(resampling_parameters$eval_criterion))
+    rr = resample(task, graph_learner, resampling)
+    resampling_error = rr$aggregate(msr(resampling_parameters$eval_criterion))
+    
+    # Predict + Calculate error on test data set ----
+    test_error = graph_learner$predict_newdata(data_test)$score(msr(resampling_parameters$eval_criterion))
+    
+    final_tree = list("graph_learner" = graph_learner,
+                      "apparent_error" = apparent_error,
+                      "resampling_error" = resampling_error,
+                      "test_error"= test_error)
+    return(final_tree)
+    
+  }
   
   ## I) Procedures involving tuning but no stepwise optimization) ---------------------------------
 
-  if(procedure %in% c("learner.hp.tune_preproc.hp.default", "learner.hp.tune_preproc.hp.tune")) {
+  else if(procedure %in% c("learner.hp.tune_preproc.hp.default", "learner.hp.tune_preproc.hp.tune")) {
 
     if(procedure == "learner.hp.tune_preproc.hp.default"){
       # Set parameter space only for learner hps (preprocessing hp = default) 
@@ -82,16 +132,18 @@ get_tree_and_error_fct = function(procedure,
     }
     # Get final tree incl. i) apparent error ii) resampling error and iii) test set error 
     final_tree = resampling_fct(task = task,
-                                  data_test = data_test,
-                                  graph_learner = graph_learner, 
-                                  search_space = search_space,
-                                  resampling_parameters = resampling_parameters)
+                                data_test = data_test,
+                                split_type = split_type,
+                                graph_learner = graph_learner, 
+                                search_space = search_space,
+                                resampling_parameters = resampling_parameters)
     
     # Add nested resampling error 
     final_tree$nested_resampling_error = nested_resampling_fct(task = task, 
-                                                                         graph_learner = graph_learner, 
-                                                                         search_space = search_space,
-                                                                         resampling_parameters = resampling_parameters)
+                                                               split_type = split_type,
+                                                               graph_learner = graph_learner, 
+                                                               search_space = search_space,
+                                                               resampling_parameters = resampling_parameters)
   
     
     return(final_tree)
@@ -142,12 +194,13 @@ get_tree_and_error_fct = function(procedure,
       final_tree = last_list_element[[which(sapply(last_list_element, '[[', "best_preproc_hp"))]] 
     } else if(error_of_interest == "nested_resampling_error"){
       
-      # param_set of graph_learner was updated and now has the step-wise optimized preproc hp values
-      # only need to tune learner hps one last time and evaluate on test data
+      # Param_set of graph_learner was updated and now has the step-wise optimized preproc hp values
+      # -> only need to tune learner hps one last time and evaluate on test data
       search_space = learner_hp_searchspace$clone(deep = TRUE)
 
       final_tree = resampling_fct(task = task,
                                     data_test = data_test,
+                                    split_type = split_type,
                                     graph_learner = graph_learner, 
                                     search_space = search_space,
                                     resampling_parameters = resampling_parameters)
@@ -273,10 +326,11 @@ get_stepopt_preproc_hp_fct = function(preproc_of_interest,
       purrr::map(.f = function(x) {
         graph_learner$param_set$values[names_preproc] = x 
         results = resampling_fct(task = task,
-                                   data_test = data_test,
-                                   graph_learner = graph_learner, 
-                                   search_space = search_space,
-                                   resampling_parameters = resampling_parameters)
+                                 data_test = data_test,
+                                 split_type = split_type,
+                                 graph_learner = graph_learner, 
+                                 search_space = search_space,
+                                 resampling_parameters = resampling_parameters)
         return(results)
       })
     
@@ -296,9 +350,10 @@ get_stepopt_preproc_hp_fct = function(preproc_of_interest,
       purrr::map(.f = function(x) {
         graph_learner$param_set$values[names_preproc] = x 
         results = nested_resampling_fct(task = task,
-                                                  graph_learner = graph_learner, 
-                                                  search_space = search_space,
-                                                  resampling_parameters = resampling_parameters)
+                                        split_type = split_type,
+                                        graph_learner = graph_learner, 
+                                        search_space = search_space,
+                                        resampling_parameters = resampling_parameters)
         return(results)
       })
     
@@ -325,22 +380,36 @@ get_stepopt_preproc_hp_fct = function(preproc_of_interest,
 
 
 
-procedure_featureless_fct = function(rep, data, id_train_list, setting_name,
+procedure_featureless_fct = function(rep, data, id_split_list, 
+                                     sample_size = c("sample50", "sample25"), 
+                                     setting_name = c("sapv", "pmd", "station"), 
+                                     split_type = c("naive", "teams"),
+                                     eval_criterion, 
                                      preproc_default,
                                      resampling_parameters){
-  # 1. Train/test data
-  id_train = id_train_list[[rep]]
-  data_train = data %>% filter((setting == setting_name) &
-                                 (companion_id %in% id_train))
-  data_test = data %>% filter((setting == setting_name) &
-                                !(companion_id %in% id_train))
-  stopifnot(length(intersect(data_train$companion_id, data_test$companion_id)) ==0) # make sure no ids are in both datasets
-  
+  # 1. Train/test data 
+  if(split_type == "naive"){
+    data_test = data %>% filter((setting == setting_name) & companion_id_grp %in% id_split_list$test_naive[[rep]])
+    if(sample_size == "sample50"){
+      data_train = data %>% filter((setting == setting_name) & companion_id_grp %in% id_split_list$train_50_naive[[rep]])
+    } else if(sample_size == "sample25"){
+      data_train = data %>% filter((setting == setting_name) & companion_id_grp %in% id_split_list$train_25_naive[[rep]])
+    }
+  } else if(split_type == "teams"){
+    data_test = data %>% filter((setting == setting_name) & companion_id_grp %in% id_split_list$test_teams[[rep]])
+    if(sample_size == "sample50"){
+      data_train = data %>% filter((setting == setting_name) & companion_id_grp %in% id_split_list$train_50_teams[[rep]])
+    } else if(sample_size == "sample25"){
+      data_train = data %>% filter((setting == setting_name) & companion_id_grp %in% id_split_list$train_25_teams[[rep]])
+    }
+  }
+  stopifnot(length(intersect(data_train$companion_id_grp, data_test$companion_id_grp)) ==0) # check that no phases (=id_grps) are in both datasets
+  stopifnot((length(unique(data_train$setting)) == 1) & (length(unique(data_test$setting)) == 1)) # check that only one palliative care setting is considered
   # 2. Specify task
   task = as_task_regr(data_train, target = "targetvar")
-  # specify companion_id as grouping variable bc observations from same id should not be split when resampling
-  # = group by id 
-  task$col_roles$group = "companion_id"
+  if(split_type == "teams"){   # if specified, set team_id as grouping variable -> not split when resampling
+    task$col_roles$group = "team_id"
+  }
   rm(data_train)
   
   # 3. Specify graph_learner (combination of preprocessing pipeline and featureless lerner)
@@ -353,7 +422,10 @@ procedure_featureless_fct = function(rep, data, id_train_list, setting_name,
   graph_learner = as_learner(preproc %>>%  # preprocessing pipeline
                                learner) # currently selected learner
   
-  # 4. Train featureless learner and get errors
+  # 4. Add eval criterion to resampling parameters
+  resampling_parameters = list_modify(resampling_parameters, eval_criterion = eval_criterion)
+  
+  # 5. Train featureless learner and get errors
   graph_learner$train(task)
   apparent_error = graph_learner$predict(task)$score(msr(resampling_parameters$eval_criterion))
   test_error = graph_learner$predict_newdata(data_test)$score(msr(resampling_parameters$eval_criterion))
@@ -367,8 +439,12 @@ procedure_featureless_fct = function(rep, data, id_train_list, setting_name,
   result$learner_name = "regr.featureless"
   result$rep = rep
   result$setting = setting_name
+  result$sample_size = sample_size
+  results$split_type = split_type
+  results$eval_criterion = eval_criterion
   
-  filename = paste0("./03_results/rdata/res_", paste(setting_name, resampling_parameters$eval_criterion, 
+  
+  filename = paste0("./03_results/rdata/res_", paste(setting_name, split_type, sample_size, resampling_parameters$eval_criterion, 
                                                      "featureless", rep, sep = "_"),".RData")
   save(result, file = filename)
 }
