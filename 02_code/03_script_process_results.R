@@ -4,6 +4,7 @@ library(reshape2)
 library(stringr)
 # Load results -------------------------------------------------------------------------------------
 res_filenames = list.files("./03_results/rdata", full.names = TRUE)
+res_filenames = res_filenames[!grepl("pilot", res_filenames)]
 
 # Extract relevant results -------------------------------------------------------------------------
 # featureless
