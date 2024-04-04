@@ -26,7 +26,6 @@ source("./02_code/_src_add_mlrlearners.R")
 # Set up learners (= algorithms) with corresponding hps --------------------------------------------
 source("./02_code/_src_setup_learners.R")
 # -> returned objects: learners_default and learners_hp_searchspace_default
-learner_names = names(learners_default)
 
 # Set up preprocessing pipeline with corresponding hps ---------------------------------------------
 
@@ -61,22 +60,10 @@ preproc_hp_stepopt_order = paste0(preproc_hp_stepopt_order, ".option")
 # (add ".option" because will access preproc_hp_searchspace with this vector)
 
 # Simulation parameters  ---------------------------------------------------------------------------
-# Number of simulated train/test datasets
-nrep = 50
-
-# Setting
+# 1) Setting
 setting_name  = "sapv" # others possible settings: "pmd", "station"
 
-# Sample size (sample size of train dataset, 50 or 25 percent of original dataset)
-sample_size = c("sample50", "sample25")
-
-# Split type
-split_type = c("naive","teams")
-
-# Evaluation_criterion
-eval_criterion = c("regr.rmse", "regr.rsq")
-
-# Tuning parameters 
+# 2) Tuning parameters 
 resampling_parameters = list(
   terminator_k = 50,
   folds_cv = 10, 
@@ -86,11 +73,16 @@ resampling_parameters = list(
   seed_nestedresampling = 1705419930
 )
 
+# 3) Full factorial design based on rep, sample_size, split_type, eval_criterion, procedure
+# Number of simulated train/test datasets
+
+###nrep = 50
+nrep =2 #### only for code testing
+
 # Optimization procedures 
 procedure_list = list(
   ## learner.hyperparam: manually select value most prone to overfitting, preproc: try all combinations, error: apparent
   ##"px" = "learner.hp.maxoverfit_preproc.hp.allcombinations_error.apparent",
-  
   ## learner.hyperparam: default, preproc.hyperparam: default, error: apparent+resampling
   "p0" = "learner.hp.default_preproc.hp.default",
   ## learner.hyperparam: resampling, preproc.hyperparam: default, error: apparent+resampling+nested
@@ -105,6 +97,14 @@ procedure_list = list(
   "p3" = "learner.hp.tune_preproc.hp.tune"
 )
 
+# -> Full factorial design
+fullfac = expand.grid(rep = 1:nrep, # repetition
+                      procedure = unname(unlist(procedure_list)), # procedures
+                      learner_name = names(learners_default), # learners
+                      split_type = c("naive","teams"), # split type
+                      sample_size = c("sample50", "sample25"), # sample size (sample size of train dataset, 50 or 25 percent of original dataset)
+                      eval_criterion = c("regr.rmse", "regr.rsq")) # evaluation criterion
+fullfac = fullfac %>% mutate_if(is.factor, as.character)
 
 # Simulate random allocation -----------------------------------------------------------------------
 # generate unique row identifier 
@@ -180,23 +180,12 @@ rm(train_25_sapv_naive, train_25_sapv_teams, train_50_sapv_naive, train_50_sapv_
 
 # Run optimization ---------------------------------------------------------------------------------
 
-# Run procedures separately 
-id_split_list = id_split_sapv_list
-data = data_phaselevel
-fullfac = expand.grid(rep = 1:nrep,
-            learner_name = learner_names,
-            split_type = split_type,
-            sample_size = sample_size,
-            eval_criterion = eval_criterion,
-            procedure = unname(unlist(procedure_list)))
 
-nrep =2 #### only for code testing
-
-1:nrow(fullfac) %>% purrr::walk(.f = function(x) {
+1:nrow(fullfac) %>% purrr::walk(.f = function(i) {
   optim_fct(rep = fullfac$rep[i],
             data = data_phaselevel,
             sample_size = fullfac$sample_size[i],
-            id_split_list = id_split_list, 
+            id_split_list = id_split_sapv_list, 
             setting_name = setting_name,
             split_type = fullfac$split_type[i],
             eval_criterion = fullfac$eval_criterion[i],
@@ -206,7 +195,7 @@ nrep =2 #### only for code testing
             preproc_default = preproc_default, 
             preproc_hp_searchspace_default = preproc_hp_searchspace_default, 
             preproc_hp_stepopt_order = preproc_hp_stepopt_order,
-            procedure = procedure_list$p0, # procedure = p0
+            procedure = fullfac$procedure[i],
             procedure_list = procedure_list,
             resampling_parameters = resampling_parameters)
 })
