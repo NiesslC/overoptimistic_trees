@@ -1,14 +1,14 @@
 optim_fct = function(rep, data, id_split_list, 
-                     sample_size = c("sample50", "sample25"), 
-                     setting_name = c("sapv", "pmd", "station"), 
-                     split_type = c("naive", "teams"),
+                     sample_size,# = c("sample50", "sample25"), 
+                     setting_name,# = c("sapv", "pmd", "station"), 
+                     split_type,# = c("naive", "teams"),
                      eval_criterion, 
                      learner_name, learners_default, learners_hp_searchspace_default,
                      preproc_default, preproc_hp_searchspace_default, preproc_hp_stepopt_order,
                      procedure, procedure_list,
                      resampling_parameters){
   # Check whether file already exists, if no -> start calculation
-  filename = paste0("./03_results/rdata/res_", paste(setting_name, split_type, sample_size, resampling_parameters$eval_criterion,
+  filename = paste0("./03_results/rdata/res_", paste(setting_name, split_type, sample_size, eval_criterion,
                                                      names(which(procedure_list == procedure)), learner_name, rep, sep = "_"),".RData")
   if(!file.exists(filename)){
   
@@ -54,6 +54,7 @@ optim_fct = function(rep, data, id_split_list,
   
   # 5. Optimize hps and get corresponding tree and error values
   results = get_tree_and_error_fct(procedure = procedure, 
+                                   split_type = split_type,
                                    graph_learner = graph_learner,
                                    learner_hp_searchspace = learner_hp_searchspace,
                                    preproc_hp_searchspace = preproc_hp_searchspace,
@@ -80,6 +81,7 @@ optim_fct = function(rep, data, id_split_list,
 
 
 get_tree_and_error_fct = function(procedure,
+                                  split_type,
                                   graph_learner,
                                   learner_hp_searchspace,
                                   preproc_hp_searchspace,
@@ -381,9 +383,9 @@ get_stepopt_preproc_hp_fct = function(preproc_of_interest,
 
 
 procedure_featureless_fct = function(rep, data, id_split_list, 
-                                     sample_size = c("sample50", "sample25"), 
-                                     setting_name = c("sapv", "pmd", "station"), 
-                                     split_type = c("naive", "teams"),
+                                     sample_size,# = c("sample50", "sample25"), 
+                                     setting_name,# = c("sapv", "pmd", "station"), 
+                                     split_type,# = c("naive", "teams"),
                                      eval_criterion, 
                                      preproc_default,
                                      resampling_parameters){
@@ -444,7 +446,7 @@ procedure_featureless_fct = function(rep, data, id_split_list,
   results$eval_criterion = eval_criterion
   
   
-  filename = paste0("./03_results/rdata/res_", paste(setting_name, split_type, sample_size, resampling_parameters$eval_criterion, 
+  filename = paste0("./03_results/rdata/res_", paste(setting_name, split_type, sample_size, eval_criterion, 
                                                      "featureless", rep, sep = "_"),".RData")
   save(result, file = filename)
 }
