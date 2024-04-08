@@ -1,6 +1,6 @@
 resampling_fct = function(task,
                           data_test,
-                          split_type = c("naive", "teams"),
+                          split_type,
                           graph_learner, 
                           search_space,
                           resampling_parameters){
@@ -57,7 +57,7 @@ resampling_fct = function(task,
 
 
 nested_resampling_fct = function(task,
-                                 split_type = c("naive", "teams"),
+                                 split_type,
                                  graph_learner, 
                                  search_space,
                                  resampling_parameters){
