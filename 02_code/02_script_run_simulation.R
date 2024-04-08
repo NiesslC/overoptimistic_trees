@@ -73,7 +73,8 @@ resampling_parameters = list(
   seed_nestedresampling = 1705419930
 )
 
-# 3) Full factorial design based on rep, sample_size, split_type, eval_criterion, procedure
+# 3) Full factorial design based on rep, sample_size, split_type, eval_criterion, procedure, learner
+
 # Number of simulated train/test datasets
 
 ###nrep = 50
@@ -102,8 +103,8 @@ fullfac = expand.grid(rep = 1:nrep, # repetition
                       procedure = unname(unlist(procedure_list)), # procedures
                       learner_name = names(learners_default), # learners
                       split_type = c("naive","teams"), # split type
-                      sample_size = c("sample50", "sample25"), # sample size (sample size of train dataset, 50 or 25 percent of original dataset)
-                      eval_criterion = c("regr.rmse", "regr.rsq")) # evaluation criterion
+                      sample_size = c("sample50","sample25"), # sample size (sample size of train dataset, 50 or 25 percent of original dataset)
+                      eval_criterion = c("regr.rmse","regr.rsq")) # evaluation criterion
 fullfac = fullfac %>% mutate_if(is.factor, as.character)
 
 # Simulate random allocation -----------------------------------------------------------------------
