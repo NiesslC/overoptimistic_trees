@@ -184,6 +184,7 @@ get_tree_and_error_fct = function(procedure,
                                    preproc_hp_searchspace = preproc_hp_searchspace,
                                    task = task,
                                    data_test = data_test, 
+                                   split_type = split_type,
                                    resampling_parameters = resampling_parameters)
       })
     names(tree_results_list) = preproc_hp_stepopt_order
@@ -310,6 +311,7 @@ get_stepopt_preproc_hp_fct = function(preproc_of_interest,
                                       preproc_hp_searchspace,
                                       task,
                                       data_test, 
+                                      split_type,
                                       resampling_parameters){
   
   
