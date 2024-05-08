@@ -108,67 +108,67 @@ fullfac = expand.grid(rep = 1:nrep, # repetition
 fullfac = fullfac %>% mutate_if(is.factor, as.character)
 
 # Simulate random allocation -----------------------------------------------------------------------
-# generate unique row identifier 
+# generate unique row identifier
 stopifnot(data_phaselevel %>% select(companion_id, grp) %>% n_distinct() == nrow(data_phaselevel)) # make sure this identifier will really be unique
 data_phaselevel = data_phaselevel %>% mutate(companion_id_grp = factor(paste(companion_id, grp, sep = "_")), .after = companion_id)
-
-set.seed(1698072152)
-
-# SAPV ids (could also be done for the two other setting pmd and station) 
-
-## Ignore teams ----
-# Generate train ids (for 50% of data)
-train_50_sapv_naive =  1:nrep %>% map(function(x) data_phaselevel %>% 
-                                        filter(setting == "sapv") %>%
-                                        slice_sample(prop = 0.5) %>% 
-                                        .$companion_id_grp)
-# Get test ids (for both 50 and 25% train)
-test_sapv_naive = train_50_sapv_naive %>% map(function(x) data_phaselevel %>% 
-                                                filter((setting == setting_name) &!(companion_id_grp %in% x)) %>% 
-                                                .$companion_id_grp)
-# Generate train ids (for 25% of data)
-train_25_sapv_naive = train_50_sapv_naive %>% map(function(x) sample(x, size = round(length(x)/2), replace = FALSE))
-
-## Include teams ----
-
-# Sample number of teams being allocated to train for each repetition for uneven numbers of teams (could be relevant if number is rather small)
-no_teams = length(unique(data_phaselevel$team_id[data_phaselevel$setting=="sapv"])) 
-sample_no_teams = sample(floor(no_teams/2):ceiling(no_teams/2), size = nrep, replace = TRUE) 
-
-# Sample teams
-train_teams = sample_no_teams %>% map(function(x) data_phaselevel %>% filter(setting == "sapv") %>% 
-                 distinct(team_id, .keep_all = TRUE) %>% 
-                 slice_sample(n = x) %>% .$team_id)
-stopifnot(any(duplicated(train_teams)) == FALSE) # check whether all splits are distinct (but would also be ok if they weren't)
-rm(no_teams, sample_no_teams)
-
-# Generate train ids (for 50% of data)
-train_50_sapv_teams = train_teams %>% map(function(x) data_phaselevel %>% filter(setting == "sapv" & team_id %in% x) %>%
-                      .$companion_id_grp)
-
-# Get test ids (for both 50 and 25% train)
-test_sapv_teams = train_teams %>% map(function(x) data_phaselevel %>% filter(setting == "sapv" & !(team_id %in% x)) %>%
-                                            .$companion_id_grp)
-# Generate train ids (for 25% of data)
-train_25_sapv_teams = train_teams %>% map(function(x) data_phaselevel %>% filter(setting == "sapv" & team_id %in% x) %>%
-                      group_by(team_id) %>% 
-                      slice_sample(prop = 0.5) %>%
-                      .$companion_id_grp)
-id_split_sapv_list = list(test_sapv_naive, train_50_sapv_naive, train_25_sapv_naive,
-                          test_sapv_teams, train_50_sapv_teams, train_25_sapv_teams)
-names(id_split_sapv_list) = c("test_naive", "train_50_naive", "train_25_naive",
-                              "test_teams", "train_50_teams", "train_25_teams")
-
-# Check that no intersection between train and test
-stopifnot(sum(map2(train_50_sapv_naive, test_sapv_naive, intersect) %>% map_dbl(length))==0) 
-stopifnot(sum(map2(train_25_sapv_naive, test_sapv_naive, intersect) %>% map_dbl(length))==0) 
-stopifnot(sum(map2(train_50_sapv_teams, test_sapv_teams, intersect) %>% map_dbl(length))==0) 
-stopifnot(sum(map2(train_25_sapv_teams, test_sapv_teams, intersect) %>% map_dbl(length))==0) 
-
-save(id_split_sapv_list, file = "./03_results/rdata/id_split_sapv_list.RData")
-rm(train_25_sapv_naive, train_25_sapv_teams, train_50_sapv_naive, train_50_sapv_teams,
-   train_teams, test_sapv_naive, test_sapv_teams)
-
+# 
+# set.seed(1698072152)
+# 
+# # SAPV ids (could also be done for the two other setting pmd and station) 
+# 
+# ## Ignore teams ----
+# # Generate train ids (for 50% of data)
+# train_50_sapv_naive =  1:nrep %>% map(function(x) data_phaselevel %>% 
+#                                         filter(setting == "sapv") %>%
+#                                         slice_sample(prop = 0.5) %>% 
+#                                         .$companion_id_grp)
+# # Get test ids (for both 50 and 25% train)
+# test_sapv_naive = train_50_sapv_naive %>% map(function(x) data_phaselevel %>% 
+#                                                 filter((setting == setting_name) &!(companion_id_grp %in% x)) %>% 
+#                                                 .$companion_id_grp)
+# # Generate train ids (for 25% of data)
+# train_25_sapv_naive = train_50_sapv_naive %>% map(function(x) sample(x, size = round(length(x)/2), replace = FALSE))
+# 
+# ## Include teams ----
+# 
+# # Sample number of teams being allocated to train for each repetition for uneven numbers of teams (could be relevant if number is rather small)
+# no_teams = length(unique(data_phaselevel$team_id[data_phaselevel$setting=="sapv"])) 
+# sample_no_teams = sample(floor(no_teams/2):ceiling(no_teams/2), size = nrep, replace = TRUE) 
+# 
+# # Sample teams
+# train_teams = sample_no_teams %>% map(function(x) data_phaselevel %>% filter(setting == "sapv") %>% 
+#                  distinct(team_id, .keep_all = TRUE) %>% 
+#                  slice_sample(n = x) %>% .$team_id)
+# stopifnot(any(duplicated(train_teams)) == FALSE) # check whether all splits are distinct (but would also be ok if they weren't)
+# rm(no_teams, sample_no_teams)
+# 
+# # Generate train ids (for 50% of data)
+# train_50_sapv_teams = train_teams %>% map(function(x) data_phaselevel %>% filter(setting == "sapv" & team_id %in% x) %>%
+#                       .$companion_id_grp)
+# 
+# # Get test ids (for both 50 and 25% train)
+# test_sapv_teams = train_teams %>% map(function(x) data_phaselevel %>% filter(setting == "sapv" & !(team_id %in% x)) %>%
+#                                             .$companion_id_grp)
+# # Generate train ids (for 25% of data)
+# train_25_sapv_teams = train_teams %>% map(function(x) data_phaselevel %>% filter(setting == "sapv" & team_id %in% x) %>%
+#                       group_by(team_id) %>% 
+#                       slice_sample(prop = 0.5) %>%
+#                       .$companion_id_grp)
+# id_split_sapv_list = list(test_sapv_naive, train_50_sapv_naive, train_25_sapv_naive,
+#                           test_sapv_teams, train_50_sapv_teams, train_25_sapv_teams)
+# names(id_split_sapv_list) = c("test_naive", "train_50_naive", "train_25_naive",
+#                               "test_teams", "train_50_teams", "train_25_teams")
+# 
+# # Check that no intersection between train and test
+# stopifnot(sum(map2(train_50_sapv_naive, test_sapv_naive, intersect) %>% map_dbl(length))==0) 
+# stopifnot(sum(map2(train_25_sapv_naive, test_sapv_naive, intersect) %>% map_dbl(length))==0) 
+# stopifnot(sum(map2(train_50_sapv_teams, test_sapv_teams, intersect) %>% map_dbl(length))==0) 
+# stopifnot(sum(map2(train_25_sapv_teams, test_sapv_teams, intersect) %>% map_dbl(length))==0) 
+# 
+# save(id_split_sapv_list, file = "./03_results/rdata/id_split_sapv_list.RData")
+# rm(train_25_sapv_naive, train_25_sapv_teams, train_50_sapv_naive, train_50_sapv_teams,
+#    train_teams, test_sapv_naive, test_sapv_teams)
+load("./03_results/rdata/id_split_sapv_list.RData")
 # check
 # test=data_phaselevel %>% mutate(t1 = ifelse(companion_id_grp %in% train_50_sapv_naive[[1]], 0,1),
 #                            t2 = ifelse(companion_id_grp %in% train_25_sapv_naive[[1]], 0,1),
@@ -186,15 +186,15 @@ rm(train_25_sapv_naive, train_25_sapv_teams, train_50_sapv_naive, train_50_sapv_
   optim_fct(rep = fullfac$rep[i],
             data = data_phaselevel,
             sample_size = fullfac$sample_size[i],
-            id_split_list = id_split_sapv_list, 
+            id_split_list = id_split_sapv_list,
             setting_name = setting_name,
             split_type = fullfac$split_type[i],
             eval_criterion = fullfac$eval_criterion[i],
-            learner_name = fullfac$learner_name[i], 
-            learners_default = learners_default, 
+            learner_name = fullfac$learner_name[i],
+            learners_default = learners_default,
             learners_hp_searchspace_default = learners_hp_searchspace_default,
-            preproc_default = preproc_default, 
-            preproc_hp_searchspace_default = preproc_hp_searchspace_default, 
+            preproc_default = preproc_default,
+            preproc_hp_searchspace_default = preproc_hp_searchspace_default,
             preproc_hp_stepopt_order = preproc_hp_stepopt_order,
             procedure = fullfac$procedure[i],
             procedure_list = procedure_list,
