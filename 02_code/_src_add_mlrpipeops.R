@@ -240,3 +240,65 @@ PipeOpFixFactorsOverwhelmingly   = R6Class("PipeOpFixFactorsOverwhelmingly",
 )
 
 mlr_pipeops$add("fixfactors.overwhelmingly", PipeOpFixFactorsOverwhelmingly)
+
+
+# fixfactors.age ----
+PipeOpFixFactorsAge   = R6Class("PipeOpFixFactorsAge",
+                                inherit = PipeOpTaskPreprocSimple,
+                                public = list(
+                                  initialize = function(id = "fixfactors.age", param_vals = list()) {
+                                    ps = ParamSet$new(params = list(
+                                      ParamLgl$new("droplevels", tags = c("train", "predict"))
+                                    ))
+                                    ps$values = list(droplevels = TRUE)
+                                    super$initialize(id, param_set = ps, param_vals = param_vals, tags = "robustify", feature_types = c("factor", "ordered"))
+                                  }
+                                ),
+                                private = list(
+                                  .get_state = function(task) {
+                                    # get age levels of train task if age is a factor
+                                    if(is.factor(task$data()$age)){
+                                      dt = task$data(cols = "age")
+                                      
+                                      if (self$param_set$values$droplevels && nrow(dt)) {  # nrow(dt): workaround for https://github.com/Rdatatable/data.table/issues/5184
+                                        dt = droplevels(dt)
+                                      }
+                                      list(levels = lapply(dt, function(x) levels(x)))  # explicitly access the "levels" function
+                                    } #else{
+                                    #list(NULL)
+                                    # }
+                                    
+                                  },
+                                  
+                                  .transform = function(task) {
+                                    if(is.factor(task$data()$age)){
+                                      dt = task$data(cols = "age")
+                                      
+                                      # check which levels are actually different during training and prediction 
+                                      # (the only problem should be the lowest category, "[21,50]" which will be transformed to "(50,60]")
+                                      needs_adjustment = as.logical(imap(self$state$levels, function(lvx, id) {
+                                        
+                                        all.equal(setdiff(levels(dt[[id]]), lvx), "[21,50]") == TRUE
+                                        
+                                        
+                                      }))
+                                      
+                                      if (!any(needs_adjustment)) {
+                                        return(task)
+                                      }
+                                      
+                                      changed_cols = as.data.table(imap(self$state$levels[needs_adjustment], function(lvx, id) {
+                                        x = dt[[id]] 
+                                        fct_collapse(x, `(50,60]`= c("[21,50]" , "(50,60]" ))
+                                        
+                                      }))
+                                      task$select(setdiff(task$feature_names, colnames(changed_cols)))$cbind(changed_cols)
+                                    } else{
+                                      return(task)
+                                    }
+                                    
+                                  }
+                                )
+)
+
+mlr_pipeops$add("fixfactors.age", PipeOpFixFactorsAge)
