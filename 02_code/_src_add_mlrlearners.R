@@ -394,100 +394,103 @@ LearnerRegrReemtree = R6Class("LearnerRegrReemtree",
 
 mlr_learners$add("regr.reemtree", LearnerRegrReemtree)
 
-# regr.reemctree ----
-# Reference:
-# 'Fu W. and Simonoff, J.S. (2015) Unbiased regression trees for longitudinal and clustered data 
-#  <doi:10.1016/j.csda.2015.02.004>.
-
-LearnerRegrReemctree = R6Class("LearnerRegrReemctree",
-                               inherit = LearnerRegr,
-                               
-                               public = list(
-                                 #' @description
-                                 #' Creates a new instance of this [R6][R6::R6Class] class.
-                                 initialize = function() {
-                                   param_set = ps(
-                                     #formula = p_uty(tags = "train"),
-                                     include.partitioning.vars_expr = p_uty(tags = "train"), # csauer
-                                     random = p_uty(tags = "train"),
-                                     MaxIterations = p_int(lower = 1L, default = 1000L, tags = "train"),
-                                     minsplit = p_int(lower = 1L, default = 20L, tags = "train"),
-                                     minbucket = p_int(lower = 1L, default = 7L, tags = "train"),
-                                     maxdepth = p_int(lower = 1L, upper = 30L, default = 30L, tags = "train"),
-                                     mincriterion = p_dbl(lower = 0, upper = 1, default = 0.95, tags = "train")
-                                   )
-                                   
-                                   super$initialize(
-                                     id = "regr.reemctree",
-                                     packages = "party",
-                                     feature_types = c("logical", "integer", "numeric", "factor", "ordered"),
-                                     predict_types = c("response"),
-                                     param_set = param_set,
-                                     properties = c("selected_features"),
-                                     man = "mlr3extralearners::mlr_learners_regr.reemctree",
-                                     label = "Unbiased RE-EM tree"
-                                   )
-                                 }
-                               ),
-                               private = list(
-                                 .train = function(task) {
-                                   ## get parameters for training
-                                   pars = self$param_set$get_values(tags = "train")
-                                   
-                                   ctree_control_names = c("minsplit", "minbucket", "maxdepth", "mincriterion")
-                                   
-                                   ctree_control_pars = pars[names(pars) %in% ctree_control_names]
-                                   pars = pars[names(pars) %nin% ctree_control_names]
-                                   
-                                   ## specify data
-                                   data = task$data()
-                                   
-                                   ## specify formula 
-                                   # (formula in the style of "target ~ partitionig.var1 + partitionig.var2 + ..";
-                                   #  random formula is in a separate argument)
-                                   #formula = task$formula()
-                                   partitioning.vars = task$feature_names[grepl(pars$include.partitioning.vars_expr, task$feature_names)]
-                                   formula = as.formula(paste0(task$target_names," ~ ", 
-                                                               paste0(partitioning.vars, collapse = " + ")))
-                                   pars = insert_named(pars, list(formula = formula))
-                                   # remove formula.random and include.partitioning.vars_expr from pars
-                                   pars = remove_named(pars, "include.partitioning.vars_expr")
-                                   
-                                   ## use the mlr3misc::invoke function (it's similar to do.call())
-                                   invoke(
-                                     REEMctree,
-                                     data = data,
-                                     ctree.control = do.call(party::ctree_control, ctree_control_pars),
-                                     .args = pars)
-                                 },
-                                 .predict = function(task) {
-                                   ## get parameters with tag "predict"
-                                   pars = self$param_set$get_values(tags = "predict")
-                                   
-                                   ## get newdata and ensure same ordering in train and predict
-                                   newdata = task$data(cols = self$state$feature_names)
-                                   
-                                   #response = invoke(predict, self$model, newdata = newdata, .args = pars)
-                                   #response = as.vector(predict(self$model$Tree, newdata = newdata))
-                                   
-                                   ## get the predicted costs for each node of the tree, based on the training data
-                                   predicted_costs_nodes = unique(cbind(where(self$model$Tree), predict(self$model$EffectModel, level = 0)))
-                                   predicted_costs_nodes = as.data.frame(predicted_costs_nodes)
-                                   colnames(predicted_costs_nodes) = c("nodes", "costs")
-                                   
-                                   ## predict nodes of instances in the test data
-                                   nodes_testdata = data.frame(nodes = where(self$model$Tree, newdata = newdata))
-                                   
-                                   ## predict costs of instances in the test data
-                                   predicted_costs_testdata = left_join(nodes_testdata, predicted_costs_nodes, by = "nodes")
-                                   
-                                   response = as.vector(predicted_costs_testdata$costs)
-                                   names(response) = 1:nrow(newdata)
-                                   
-                                   list(response = response)
-                                 }
-                               )
-)
-
-mlr_learners$add("regr.reemctree", LearnerRegrReemctree)
-
+#' # regr.reemctree ---- (not working)
+#' # Reference:
+#' # 'Fu W. and Simonoff, J.S. (2015) Unbiased regression trees for longitudinal and clustered data 
+#' #  <doi:10.1016/j.csda.2015.02.004>.
+#' 
+#' LearnerRegrReemctree = R6Class("LearnerRegrReemctree",
+#'                                inherit = LearnerRegr,
+#'                                
+#'                                public = list(
+#'                                  #' @description
+#'                                  #' Creates a new instance of this [R6][R6::R6Class] class.
+#'                                  initialize = function() {
+#'                                    param_set = ps(
+#'                                      #formula = p_uty(tags = "train"),
+#'                                      include.partitioning.vars_expr = p_uty(tags = c("train", "predict")), # csauer
+#'                                      random = p_uty(tags = "train"),
+#'                                      MaxIterations = p_int(lower = 1L, default = 1000L, tags = "train"),
+#'                                      minsplit = p_int(lower = 1L, default = 20L, tags = "train"),
+#'                                      minbucket = p_int(lower = 1L, default = 7L, tags = "train"),
+#'                                      maxdepth = p_int(lower = 1L, upper = 30L, default = 30L, tags = "train"),
+#'                                      mincriterion = p_dbl(lower = 0, upper = 1, default = 0.95, tags = "train")
+#'                                    )
+#'                                    
+#'                                    super$initialize(
+#'                                      id = "regr.reemctree",
+#'                                      packages = "party",
+#'                                      feature_types = c("logical", "integer", "numeric", "factor", "ordered"),
+#'                                      predict_types = c("response"),
+#'                                      param_set = param_set,
+#'                                      properties = c("selected_features"),
+#'                                      man = "mlr3extralearners::mlr_learners_regr.reemctree",
+#'                                      label = "Unbiased RE-EM tree"
+#'                                    )
+#'                                  }
+#'                                ),
+#'                                private = list(
+#'                                  .train = function(task) {
+#'                                    ## get parameters for training
+#'                                    pars = self$param_set$get_values(tags = "train")
+#'                                    
+#'                                    ctree_control_names = c("minsplit", "minbucket", "maxdepth", "mincriterion")
+#'                                    
+#'                                    ctree_control_pars = pars[names(pars) %in% ctree_control_names]
+#'                                    pars = pars[names(pars) %nin% ctree_control_names]
+#'                                    
+#'                                    ## specify data
+#'                                    data = task$data()
+#'                                    
+#'                                    ## specify formula 
+#'                                    # (formula in the style of "target ~ partitionig.var1 + partitionig.var2 + ..";
+#'                                    #  random formula is in a separate argument)
+#'                                    #formula = task$formula()
+#'                                    partitioning.vars = task$feature_names[grepl(pars$include.partitioning.vars_expr, task$feature_names)]
+#'                                    formula = as.formula(paste0(task$target_names," ~ ", 
+#'                                                                paste0(partitioning.vars, collapse = " + ")))
+#'                                    pars = insert_named(pars, list(formula = formula))
+#'                                    # remove formula.random and include.partitioning.vars_expr from pars
+#'                                    pars = remove_named(pars, "include.partitioning.vars_expr")
+#'                                    
+#'                                    ## use the mlr3misc::invoke function (it's similar to do.call())
+#'                                    invoke(
+#'                                      REEMctree,
+#'                                      data = data,
+#'                                      ctree.control = do.call(party::ctree_control, ctree_control_pars),
+#'                                      .args = pars)
+#'                                  },
+#'                                  .predict = function(task) {
+#'                                    ## get parameters with tag "predict"
+#'                                    pars = self$param_set$get_values(tags = "predict")
+#'                                    
+#'                                    ## get newdata and ensure same ordering in train and predict
+#'                                    ##newdata = task$data(cols = self$state$feature_names)
+#'                                     #newdata = task$data(cols = self$state$feature_names[grepl(pars$include.partitioning.vars_expr, self$state$feature_names)])
+#'                                    newdata = task$data(cols = c("palliativephase","age", "akps","cogn_agitation", "cogn_confusion","ipos_score"))
+#'                                  
+#'                                    #response = invoke(predict, self$model, newdata = newdata, .args = pars)
+#'                                    #response = as.vector(predict(self$model$Tree, newdata = newdata))
+#'                                    
+#'                                    ## get the predicted costs for each node of the tree, based on the training data
+#'                                    predicted_costs_nodes = unique(cbind(where(self$model$Tree), predict(self$model$EffectModel, level = 0)))
+#'                                    predicted_costs_nodes = as.data.frame(predicted_costs_nodes)
+#'                                    colnames(predicted_costs_nodes) = c("nodes", "costs")
+#'                                    
+#'                                    ## predict nodes of instances in the test data
+#'                                    nodes_testdata = data.frame(nodes = where(self$model$Tree, newdata = newdata))
+#'                                   ####### nodes_testdata = data.frame(nodes = rep(max(predicted_costs_nodes$nodes),times = nrow(newdata)))
+#'                                    
+#'                                    ## predict costs of instances in the test data
+#'                                    predicted_costs_testdata = left_join(nodes_testdata, predicted_costs_nodes, by = "nodes")
+#'                                    
+#'                                    response = as.vector(predicted_costs_testdata$costs)
+#'                                    names(response) = 1:nrow(newdata)
+#'                                    
+#'                                    list(response = response)
+#'                                  }
+#'                                )
+#' )
+#' 
+#' mlr_learners$add("regr.reemctree", LearnerRegrReemctree)
+#' 
