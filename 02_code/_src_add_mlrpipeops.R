@@ -302,3 +302,132 @@ PipeOpFixFactorsAge   = R6Class("PipeOpFixFactorsAge",
 )
 
 mlr_pipeops$add("fixfactors.age", PipeOpFixFactorsAge)
+
+
+# fixfactors.akps ----
+PipeOpFixFactorsAKPS   = R6Class("PipeOpFixFactorsAKPS",
+                                 inherit = PipeOpTaskPreprocSimple,
+                                 public = list(
+                                   initialize = function(id = "fixfactors.akps", param_vals = list()) {
+                                     ps = ParamSet$new(params = list(
+                                       ParamLgl$new("droplevels", tags = c("train", "predict"))
+                                     ))
+                                     ps$values = list(droplevels = TRUE)
+                                     super$initialize(id, param_set = ps, param_vals = param_vals, tags = "robustify", feature_types = c("factor", "ordered"))
+                                   }
+                                 ),
+                                 private = list(
+                                   .get_state = function(task) {
+                                     # get akps levels of train task
+                                     
+                                     dt = task$data(cols = "akps")
+                                     
+                                     if (self$param_set$values$droplevels && nrow(dt)) {  # nrow(dt): workaround for https://github.com/Rdatatable/data.table/issues/5184
+                                       dt = droplevels(dt)
+                                     }
+                                     list(levels = lapply(dt, function(x) levels(x)))  # explicitly access the "levels" function
+                                     
+                                     
+                                   },
+                                   
+                                   .transform = function(task) {
+                                     dt = task$data(cols = "akps")
+                                     
+                                     # check which levels are actually different during training and prediction 
+                                     # (the only problem should be the highest category in preproc option A ("70_80_90") which will be transformed to "60")
+                                     diff_levels = imap(self$state$levels, function(lvx, id) {
+                                       
+                                       setdiff(levels(dt[[id]]), lvx)
+                                       
+                                       
+                                     })
+                                     diff_levels = diff_levels$akps
+                                     
+                                     if (length(diff_levels)==0) {
+                                       return(task)
+                                     } else if(all(diff_levels == "70_80_90")){
+                                       changed_cols = as.data.table(imap(self$state$levels["akps"], function(lvx, id) {
+                                         x = dt[[id]] 
+                                         fct_collapse(x, `60`= c("60" , "70_80_90" ))
+                                         
+                                       }))
+                                       task$select(setdiff(task$feature_names, colnames(changed_cols)))$cbind(changed_cols)
+                                     } else if(all(diff_levels == "10")){
+                                       changed_cols = as.data.table(imap(self$state$levels["akps"], function(lvx, id) {
+                                         x = dt[[id]]
+                                         fct_collapse(x, `20`= c("20" , "10"))
+
+                                       }))
+                                       task$select(setdiff(task$feature_names, colnames(changed_cols)))$cbind(changed_cols)
+                                     } else if(all(diff_levels %in% c("10","70_80_90"))){
+                                       changed_cols = as.data.table(imap(self$state$levels["akps"], function(lvx, id) {
+                                         x = dt[[id]]
+                                         fct_collapse(x, `60`= c("60" , "70_80_90" ),
+                                                         `20`= c("20" , "10"))
+
+                                       }))
+                                       task$select(setdiff(task$feature_names, colnames(changed_cols)))$cbind(changed_cols)
+                                     }
+    
+                                   }
+                                 )
+)
+
+mlr_pipeops$add("fixfactors.akps", PipeOpFixFactorsAKPS)
+
+
+# fixfactors.cogn_agitation ----
+PipeOpFixFactorsCognAgitation   = R6Class("PipeOpFixFactorsCognAgitation",
+                                inherit = PipeOpTaskPreprocSimple,
+                                public = list(
+                                  initialize = function(id = "fixfactors.cogn_agitation", param_vals = list()) {
+                                    ps = ParamSet$new(params = list(
+                                      ParamLgl$new("droplevels", tags = c("train", "predict"))
+                                    ))
+                                    ps$values = list(droplevels = TRUE)
+                                    super$initialize(id, param_set = ps, param_vals = param_vals, tags = "robustify", feature_types = c("factor", "ordered"))
+                                  }
+                                ),
+                                private = list(
+                                  .get_state = function(task) {
+                                    # get cogn_agitation levels of train task 
+                                      dt = task$data(cols = "cogn_agitation")
+                                      
+                                      if (self$param_set$values$droplevels && nrow(dt)) {  # nrow(dt): workaround for https://github.com/Rdatatable/data.table/issues/5184
+                                        dt = droplevels(dt)
+                                      }
+                                      list(levels = lapply(dt, function(x) levels(x)))  # explicitly access the "levels" function
+
+                                    
+                                  },
+                                  
+                                  .transform = function(task) {
+                                      dt = task$data(cols = "cogn_agitation")
+                                      
+                                      # check which levels are actually different during training and prediction 
+                                      # (the only problem should be the highest category, "severe" which will be transformed to "moderate")
+                                      needs_adjustment = as.logical(imap(self$state$levels, function(lvx, id) {
+                                        
+                                        all.equal(setdiff(levels(dt[[id]]), lvx), "severe") == TRUE
+                                        
+                                        
+                                      }))
+                                      
+                                      if (!any(needs_adjustment)) {
+                                        return(task)
+                                      }
+                                      
+                                      changed_cols = as.data.table(imap(self$state$levels[needs_adjustment], function(lvx, id) {
+                                        x = dt[[id]] 
+                                        fct_collapse(x, moderate = c("moderate" , "severe" ))
+                                        
+                                      }))
+                                      task$select(setdiff(task$feature_names, colnames(changed_cols)))$cbind(changed_cols)
+                                   
+                                    
+                                  }
+                                )
+)
+
+mlr_pipeops$add("fixfactors.cogn_agitation", PipeOpFixFactorsCognAgitation)
+
