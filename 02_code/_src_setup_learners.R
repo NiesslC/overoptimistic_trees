@@ -15,11 +15,16 @@ minbucket_lower = 5
 minbucket_upper = 20
 alpha_lower = 0.01 
 alpha_upper = 0.1
-mincriterion_upper = 1-alpha_lower
-mincriterion_lower = 1-alpha_upper
+#mincriterion_upper = 1-alpha_lower
+#mincriterion_lower = 1-alpha_upper
 include.partitioning.vars_expr = "palliativephase|ipos|age|cogn|akps"
 maxdepth = 4
 minsplit = 20 
+# for settings in which learner is not tuned
+minbucket = 7 
+alpha = 0.05
+cp = 0.01
+
 
 tunable_hp_ps.cp_minbucket = paradox::ps(
   cp = p_dbl(cp_lower, cp_upper),
@@ -31,10 +36,10 @@ tunable_hp_ps.alpha_minbucket = paradox::ps(
   minbucket = p_int(minbucket_lower, minbucket_upper)
 )
 
-tunable_hp_ps.mincriterion_minbucket = paradox::ps(
-  mincriterion = p_dbl(mincriterion_lower, mincriterion_upper),
-  minbucket = p_int(minbucket_lower, minbucket_upper)
-)
+# tunable_hp_ps.mincriterion_minbucket = paradox::ps(
+#   mincriterion = p_dbl(mincriterion_lower, mincriterion_upper),
+#   minbucket = p_int(minbucket_lower, minbucket_upper)
+# )
 
 
 ## lrn_cart
@@ -43,6 +48,8 @@ lrn_cart.hp = list(
     include.partitioning.vars_expr = include.partitioning.vars_expr,
     maxdepth = maxdepth,
     minsplit = minsplit,
+    minbucket = minbucket,
+    cp = cp,
     xval = 0),  
   tunable = tunable_hp_ps.cp_minbucket$clone()
 )
@@ -51,7 +58,9 @@ lrn_ctree.hp = list(
   fixed = list( 
     include.partitioning.vars_expr = include.partitioning.vars_expr,
     maxdepth = maxdepth,
-    minsplit = minsplit),
+    minsplit = minsplit,
+    minbucket = minbucket,
+    alpha = alpha),
   tunable = tunable_hp_ps.alpha_minbucket$clone()
 )
 
@@ -62,7 +71,9 @@ lrn_lmertree_it.hp = list(
     include.partitioning.vars_expr = include.partitioning.vars_expr,
     re.form = NA,
     maxdepth = maxdepth,
-    minsplit = minsplit),
+    minsplit = minsplit,
+    minbucket = minbucket,
+    alpha = alpha),
   tunable = tunable_hp_ps.alpha_minbucket$clone()
 )
 ## lrn_lmertree_i
@@ -85,7 +96,9 @@ lrn_reemtree_it.hp = list(
     EstimateRandomEffects = FALSE, 
     cv = FALSE,
     maxdepth = maxdepth,
-    minsplit = minsplit),
+    minsplit = minsplit,
+    minbucket = minbucket,
+    cp = cp),
   tunable = tunable_hp_ps.cp_minbucket$clone()
 )
 
@@ -137,8 +150,8 @@ names(learners_hp_searchspace_default) = names(learners_default)
 
 # Remove unnecessary objects ----
 rm(# parameters 
-  "tunable_hp_ps.alpha_minbucket","tunable_hp_ps.cp_minbucket","tunable_hp_ps.mincriterion_minbucket",
-   "minbucket_lower","minbucket_upper","mincriterion_lower","mincriterion_upper",
+  "tunable_hp_ps.alpha_minbucket","tunable_hp_ps.cp_minbucket",#"tunable_hp_ps.mincriterion_minbucket",
+   "minbucket_lower","minbucket_upper",#"mincriterion_lower","mincriterion_upper",
    "alpha_lower","alpha_upper","cp_lower","cp_upper", "include.partitioning.vars_expr","maxdepth","minsplit",
    # hp lists
    "lrn_ctree.hp","lrn_lmertree_t.hp","lrn_lmertree_i.hp","lrn_lmertree_it.hp",
