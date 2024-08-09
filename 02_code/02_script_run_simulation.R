@@ -37,9 +37,11 @@ preproc_default = po("preproc.target", option = "A") %>>%
   po("preproc.drop.iposca") %>>%
   po("preproc.feature.ipos") %>>% 
   po("preproc.feature.age") %>>% 
-  po("preproc.feature.akps")%>>% 
-  po("fixfactors.overwhelmingly") %>>% # if overwhelmingly was not present in train for ipos_pain or ipos_shortness_breath, it is set to "severly" for prediction (only occurs for nested resampling) 
-  po("fixfactors.age", affect_columns = selector_name("age")) # if age = [21,50]  was not present in predict, it is collapsed with (50,60] (only occurs for some resampling iterations)                              
+  po("preproc.feature.akps") %>>% 
+  po("fixfactors.overwhelmingly") %>>% # if overwhelmingly is not present in train for ipos_pain or ipos_shortness_breath, it is set to "severly" for prediction (only occurs for nested resampling) 
+  po("fixfactors.age", affect_columns = selector_name("age")) %>>% # if age = [21,50]  is not present in predict, it is collapsed with (50,60] (only occurs for some resampling iterations)                              
+  po("fixfactors.akps", affect_columns = selector_name("akps")) %>>% # if akps = 70_80_90  is not present in predict, it is collapsed with 60 (only occurs for some resampling iterations)                              
+  po("fixfactors.cogn_agitation", affect_columns = selector_name("cogn_agitation")) # if cogn_agitation = severe  is not present in predict, it is collapsed with moderate (only occurs for 4 resampling iterations in p3) 
 
 #examplegraph =preproc_default %>>% lrn("regr.rpart", id = "learner")
 #examplegraph$plot(html = TRUE)
@@ -65,7 +67,7 @@ setting_name  = "sapv" # others possible settings: "pmd", "station"
 
 # 2) Tuning parameters 
 resampling_parameters = list(
-  terminator_k = 50,
+  terminator_k = 30,
   folds_cv = 10, 
   inner_folds_nestedcv = 2, 
   outer_folds_nestedcv = 10,
@@ -78,7 +80,6 @@ resampling_parameters = list(
 # Number of simulated train/test datasets
 
 nrep = 50
-#nrep =2 #### only for code testing
 
 # Optimization procedures 
 procedure_list = list(
@@ -92,19 +93,20 @@ procedure_list = list(
   "p2a" = "learner.hp.tune_preproc.hp.steopt_error.apparent",
   ## learner.hyperparam: resampling, preproc.hyperparam: stepwise optimization, error: resampling
   "p2b" = "learner.hp.tune_preproc.hp.steopt_error.resampling",
-  ## learner.hyperparam: resampling, preproc.hyperparam: stepwise optimization, error: nested resampling
-  ## "p2c" = "learner.hp.tune_preproc.hp.steopt_error.nested_resampling",
   ## learner.hyperparam: resampling, preproc.hyperparam: resampling, error: apparent+resampling+nested
-  "p3" = "learner.hp.tune_preproc.hp.tune"
+  "p3" = "learner.hp.tune_preproc.hp.tune",
+  ## learner.hyperparam: resampling, preproc.hyperparam: stepwise optimization, error: apparent
+  "p4a" = "learner.hp.default_preproc.hp.steopt_error.apparent"
 )
 
 # -> Full factorial design
-fullfac = expand.grid(rep = 1:nrep, # repetition
-                      learner_name = names(learners_default), # learners 
-                      split_type = c("naive","teams"), # split type
+fullfac = expand.grid(split_type = "naive", # c("naive","teams"), # split type
+                      rep = 1:nrep, # repetition 
                       sample_size = c("sample50","sample25"), # sample size (sample size of train dataset, 50 or 25 percent of original dataset)
                       eval_criterion = c("regr.rmse","regr.rsq"), # evaluation criterion
-                      procedure = "learner.hp.default_preproc.hp.default") ##########unname(unlist(procedure_list))) # procedures
+                      procedure = c("learner.hp.tune_preproc.hp.tune"), ###unname(unlist(procedure_list)), # procedures
+                      learner_name = names(learners_default)) # learners 
+                      
 fullfac = fullfac %>% mutate_if(is.factor, as.character)
 
 # Simulate random allocation -----------------------------------------------------------------------
@@ -184,7 +186,8 @@ load("./03_results/rdata/id_split_sapv_list.RData")
 
 
 1:nrow(fullfac) %>% purrr::walk(.f = function(i) {
-  optim_fct(rep = fullfac$rep[i],
+  try(
+    optim_fct(rep = fullfac$rep[i],
             data = data_phaselevel,
             sample_size = fullfac$sample_size[i],
             id_split_list = id_split_sapv_list,
@@ -200,37 +203,13 @@ load("./03_results/rdata/id_split_sapv_list.RData")
             procedure = fullfac$procedure[i],
             procedure_list = procedure_list,
             resampling_parameters = resampling_parameters)
+  )
 })
 
-
-
-
-
-
-# Add featureless learner results for each repetition ----------------------------------------------
-setting_name = setting_names[1]
-1:nrep %>% purrr::walk(.f = function(x) {
-  procedure_featureless_fct(rep = x,
-                            data = data_phaselevel,
-                            sample_size = sample_size,
-                            id_train_list = id_split_sapv_list, 
-                            setting_name = setting_name,
-                            split_type = split_type,
-                            eval_criterion = eval_criterion,
-                            preproc_default = preproc_default,
-                            resampling_parameters = resampling_parameters)
-})
 
 # To Do: -------------------------------------------------------------------------------------------
-# - check that correct vars have been used via graph_learner_tuned$model$lrn_glmertree_if$model$formula
-# t =res_sapv_p1[[1]]$graph_learner_tuned
-# t$graph_learner_tuned$param_set
-# t$model$lrn_rpart$train_task
-
-# again check that same id train test splits were used 
 
 # - Function descriptions
-# - Implement procedure where learner choice is also tunable 
 # - Do we need all functions in learner_helpers?
 # - Add info on R package versions (also for those called when using invoke()?)
 
