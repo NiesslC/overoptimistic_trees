@@ -9,6 +9,7 @@ library(reshape2)
 library(forcats)
 library(RColorBrewer)
 library(gridExtra)
+library(purrr)
 
 # Load data and functions --------------------------------------------------------------------------
 load("./01_data/data_phaselevel.RData")
@@ -61,7 +62,6 @@ data_phaselevel = data_phaselevel %>% mutate(akps = factor(akps, levels = c("10"
                                                            "(90) able to carry on normal activity; minor sign of symptoms \nof disease")))
 label(data_phaselevel$akps) <- "AKPS"
 # Preprocess outcome and IPOS ----------------------------------------------------------------------
-
 
 # IPOS: total sum score
 ipos_score = preprocess_feature_ipos_fct(data = data_phaselevel, option = "A") %>% 
@@ -119,22 +119,39 @@ t3 <- table1(~ number_patients,
 t1kable(t3)
 t1kable(t3, format = "latex")
 
-# Figures: IPOS individual features ----------------------------------------------------------------
+# Table: IPOS cannot assess ------------------------------------------------------------------------
 
 iposdat_ca = data_phaselevel %>% select(contains("ipos"),-ipos_score) %>% 
-  mutate(sum_ca = rowSums(. == "cannot assess")) %>%
-  count(sum_ca) %>%    # Count occurrences of each category
-  mutate(proportion = n / sum(n)) 
-ggplot(iposdat_ca, aes(x = "", y = proportion, fill = factor(sum_ca))) +
-  geom_bar(stat = "identity", width = 1)+
-  theme_bw()+
-  coord_flip()+
-  labs(fill = "Number of missing IPOS values", y = "Proportion", x = "")
+  mutate(sum_ca = rowSums(. == "cannot assess"))
+iposdat_ca$targetvar = data_phaselevel$targetvar
+iposdat_ca = 1:17 %>% map(function(x) 
+  ifelse(iposdat_ca$sum_ca >= x, NA, iposdat_ca$targetvar))
+iposdat_ca = as.data.frame(do.call(cbind,iposdat_ca))
+#iposdat_ca = cbind(iposdat_ca, data_phaselevel) %>% select(targetvar, starts_with("V"))
 
-ggplot(Ancestry, aes(x = row,y = Proportion, fill = Race)) +
-  geom_bar(stat="identity")
+label(iposdat_ca$V1) <- "lambdaca  0"
+label(iposdat_ca$V11) <- "lambdaca  10"
+label(iposdat_ca$V13) <- "lambdaca  12"
+label(iposdat_ca$V15) <- "lambdaca  14"
+label(iposdat_ca$V17) <- "lambdaca  16"
 
+my.render.cont <- function(x) {
+  with(stats.default(x), 
+       c("","Mean (SD)" = sprintf("%s (%s)",round_pad(MEAN, 2),
+                                  round_pad(SD, 2)),"Median (Min, Max)" = sprintf("%s (%s, %s)",
+                                       round_pad(MEDIAN, 2), 
+                                       round_pad(MIN, 2), 
+                                       round_pad(MAX, 2)))
+  )
+}
+
+tca = table1(~V1+V11+V13+V15+V17, data = iposdat_ca,render.continuous = my.render.cont)
+tca
+save_kable(t1kable(tca, format = "latex"), file = "./03_results/tex/companion_ca.tex")
 rm(iposdat_ca)
+
+# Figures: IPOS individual features ----------------------------------------------------------------
+
 # Plot individual features
 group1 = paste0("ipos_",c("pain",
            "shortness_breath","weakness","nausea","vomiting",
@@ -151,7 +168,10 @@ iposdat2 = melt(data_phaselevel, measure.vars = colnames(data_phaselevel %>% sel
 iposdat3 = melt(data_phaselevel, measure.vars = colnames(data_phaselevel %>% select(any_of(group3)))) 
 iposdat4 = melt(data_phaselevel, measure.vars = colnames(data_phaselevel %>% select(any_of(group4))))
 iposdat1 = iposdat1 %>% mutate(group = "group1",
-                             value = factor(value, levels = rev(levels(data_phaselevel$ipos_pain))),
+                             value = factor(value, levels = rev(c("not at all","slightly","moderately",
+                                                                  "severely","overwhelmingly","cannot assess")),
+                                            labels = rev(c("not at all","slightly","moderately",
+                                                           "severely","overwhelmingly","cannot \nassess"))),
                              variable = factor(variable, 
                                                levels = c("ipos_pain","ipos_shortness_breath","ipos_weakness","ipos_nausea",
                                                           "ipos_vomiting","ipos_poor_appetite",
@@ -168,14 +188,20 @@ iposdat1 = iposdat1 %>% mutate(group = "group1",
                                                           "IPOS: Drowsiness",
                                                           "IPOS: Poor mobility")))
 iposdat2 = iposdat2 %>% mutate(group = "group2",
-                               value = factor(value, levels = rev(levels(data_phaselevel$ipos_patient_anxiety))),
+                               value = factor(value, levels = rev(c("not at all","occasionally","sometimes",
+                                                                    "most of the time","always","cannot assess")),
+                                              labels = rev(c("not at all","occasionally","sometimes",
+                                                             "most of \nthe time","always","cannot \nassess"))),
                                variable = factor(variable, 
                                                  levels = c("ipos_patient_anxiety","ipos_family_anxiety","ipos_depression" ),
                                                  labels = c("IPOS: Patient anxiety",
                                                             "IPOS: Family anxiety",
                                                             "IPOS: Depression")))
 iposdat3 = iposdat3 %>% mutate(group = "group3",
-                               value = factor(value, levels = rev(levels(data_phaselevel$ipos_peace))),
+                               value = factor(value, levels = rev(c("always","most of the time","sometimes",
+                                                                    "occasionally","not at all","cannot assess")),
+                                              labels = rev(c("always","most of \nthe time","sometimes",
+                                                             "occasionally","not at all","cannot \nassess"))),
                                variable = factor(variable, 
                                                  levels = c("ipos_peace","ipos_sharing_feelings","ipos_information" ),
                                                  labels = c("IPOS: Feeling at peace",
@@ -187,55 +213,31 @@ iposdat4 = iposdat4 %>% mutate(group = "group4",
                                                                      "not addressed","cannot assess")),
                                               labels = rev(c( "addressed or \nno problem", "mostly \naddressed" , 
                                                               "partly \naddressed","hardly \naddressed",      
-                                                              "not \naddressed","cannot assess"))),
+                                                              "not \naddressed","cannot \nassess"))),
                                variable = factor(variable, 
                                                  levels = c("ipos_practical_matters" ),
                                                  labels = c("IPOS: Practical matters")))
 
-pos = "top"
-gnrow = 1
-cols = c("grey",brewer.pal(5, "RdYlGn")) #'Purples'
-p1 = ggplot(iposdat1, aes(x = variable, fill = value))+
-   geom_bar(stat = "count", position = "fill")+
-   scale_fill_manual(values = cols)+
-   theme_bw()+
-  coord_flip()+
-  #scale_x_discrete(guide = guide_axis(n.dodge = 2)) +
- # theme(axis.text.x = element_text(angle = 90, hjust = 1))+
-  labs(fill = "", x = "", y = "Proportion")+
-  guides(fill = guide_legend(reverse=T,nrow = gnrow))+
-  theme(legend.position = pos)
-p2 = ggplot(iposdat2, aes(x = variable, fill = value))+
-  geom_bar(stat = "count", position = "fill")+
-  scale_fill_manual(values = cols)+
-  theme_bw()+
-  coord_flip()+
-  #scale_x_discrete(guide = guide_axis(n.dodge = 2)) +
-  # theme(axis.text.x = element_text(angle = 90, hjust = 1))+
-  labs(fill = "", x = "", y = "Proportion")+
-  guides(fill = guide_legend(reverse=T,nrow = gnrow))+
-  theme(legend.position = pos)
-p3 = ggplot(iposdat3, aes(x = variable, fill = value))+
-  geom_bar(stat = "count", position = "fill")+
-  scale_fill_manual(values = cols)+
-  theme_bw()+
-  coord_flip()+
-  #scale_x_discrete(guide = guide_axis(n.dodge = 2)) +
-  # theme(axis.text.x = element_text(angle = 90, hjust = 1))+
-  labs(fill = "", x = "", y = "Proportion")+
-  guides(fill = guide_legend(reverse=T,nrow = gnrow))+
-  theme(legend.position = pos)
-p4 = ggplot(iposdat4, aes(x = variable, fill = value))+
-  geom_bar(stat = "count", position = "fill")+
-  scale_fill_manual(values = cols)+
-  theme_bw()+
-  coord_flip()+
-  #scale_x_discrete(guide = guide_axis(n.dodge = 2)) +
-  # theme(axis.text.x = element_text(angle = 90, hjust = 1))+
-  labs(fill = "", x = "", y = "Proportion")+
-  guides(fill = guide_legend(reverse=T,nrow = gnrow))+
-  theme(legend.position = pos)
 
+cols = c("grey",brewer.pal(5, "RdYlGn")) #'Purples'
+plotiposca_fct = function(iposdat){
+  p = ggplot(iposdat, aes(x = variable, fill = value))+
+    geom_bar(stat = "count", position = "fill")+
+    scale_fill_manual(values = cols)+
+    theme_bw()+
+    coord_flip()+
+    #scale_x_discrete(guide = guide_axis(n.dodge = 2)) +
+    # theme(axis.text.x = element_text(angle = 90, hjust = 1))+
+    labs(fill = "", x = "", y = "Proportion")+
+    guides(fill = guide_legend(reverse=T,nrow = 1))+
+    theme(legend.position = "top",
+          text = element_text(size = 13))
+  return(p)
+}
+p1 = plotiposca_fct(iposdat1)
+p2 = plotiposca_fct(iposdat2)
+p3 = plotiposca_fct(iposdat3)
+p4 = plotiposca_fct(iposdat4)
 # p=grid.arrange(grobs=list(p1,p2,p3,p4),layout_matrix = rbind(c(1,1,1),
 #                                                            c(2,3,4)),
 #                widths = c(2, 2, 1),ncol =3)
@@ -243,6 +245,49 @@ p=grid.arrange(grobs=list(p1,p2,p3,p4),ncol=1,
                heights = c(7,3,3,2))
 ggsave(p, file = "./03_results/plots/ipos.png", width = 220, 
        height = 297, units = "mm")
+rm(p1, p2, p3, p4, group1, group2, group3, group4,
+   iposdat1, iposdat2, iposdat3, iposdat4)
+# Cluster analysis ---------------------------------------------------------------------------------
+
+clusterdat = data_phaselevel %>% select(team_id, companion_id, 
+                                        targetvar, palliativephase,
+                                        age, ipos_score,akps,
+                                        cogn_confusion, cogn_agitation
+                                        ) #%>%
+clusterdat %>% select(-team_id) %>% # Exclude the grouping variable for now
+  map(~ kruskal.test(.x ~ clusterdat$team_id)) %>%
+  map_df(~ broom::tidy(.x), .id = "variable")
+  #mutate()
+model.matrix(~0+., data=clusterdat) %>% 
+  cor(use="pairwise.complete.obs") %>% 
+  ggcorrplot(show.diag=TRUE, type="lower", lab=TRUE, lab_size=2)
+
+
+
+kruskal.test(targetvar ~ age, data = data_phaselevel)
+ggplot(data_phaselevel, aes(x = team_id, y = targetvar))+
+  geom_boxplot()
+ggplot(data_phaselevel, aes(x = team_id, y = ipos_score))+
+  geom_boxplot()
+data_phaselevel %>% group_by(team_id) %>%
+  summarise(cor = var(targetvar))
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
