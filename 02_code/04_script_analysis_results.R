@@ -6,40 +6,46 @@ library(latex2exp)
 library(reshape2)
 library(ggh4x)
 library(wesanderson)
-# Load, check and prepare results df ---------------------------------------------------------------
+# Preparations =====================================================================================
+
+## Load, check and prepare results df --------------------------------------------------------------
 load("./03_results/rdata/_resdf.RData")
 stopifnot(length(unique(resdf$setting))==1) # we only consider one palliative care setting (sapv)
 
+# Stop if results do not include all repetitions of all settings (ignoring split_type)
+stopifnot(all.equal(
+  prod(unname(unlist(resdf %>% 
+                     select(procedure_gen_eval, learner_name,  sample_size, eval_criterion) %>% 
+                     summarise_all(~ length(unique(.)))))) * 50,
+  nrow(resdf %>% filter(split_type == "naive"))))
+
+
 ## Set plotting colors -----------------------------------------------------------------------------
-###col_error = 
+col_errors = brewer.pal(4, "Set2")[c(1,4,3,2)]
+#col_errors = c("#999999", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
+##col_errors = c("#F0E442", "#0072B2","#CC79A7", "#009E73")
+#display.brewer.all(n=NULL, type="all", select=NULL, exact.n=TRUE,
+ #                 colorblindFriendly=TRUE)
 
-## Check number of settings -------------------------------------------------------------------------
-# Compare number of settings by design vs. actual number (ignoring split_type)
-stopifnot(
-  prod(unname(unlist(resdf %>% select(procedure_gen, learner_name,  sample_size, eval_criterion) %>% summarise_all(~ length(unique(.)))))) ==
-    # -> should be 80 different trees for each repetition (but more reported performances)
-    nrow(resdf %>% group_by(procedure_gen, learner_name, sample_size, eval_criterion) %>%
-           summarise(n())))
-
-## Change variable lables for plotting --------------------------------------------------------------
-resdf = resdf %>% mutate(learner_name = factor(learner_name, levels = c("lrn_cart",
-                                                                "lrn_ctree",
-                                                                "lrn_lmertree_t",
-                                                                "lrn_reemtree_t"),
-                                       labels = c("CART", "CIT", "REEMT", "LMMT")),
+## Change variable lables for plotting -------------------------------------------------------------
+resdf = resdf %>% mutate(learner_name = factor(learner_name, levels = c("lrn_cart","lrn_reemtree_t","lrn_lmertree_t","lrn_ctree"),
+                                       labels = c("CART", "REEMT", "LMMT", "CIT")),
                          procedure_gen_label = factor(procedure_gen_short, 
-                                                      levels = c("featureless", "p0", "p1", "p4a", "p3", "p2b", "p2a"),
+                                                      levels = c("featureless", "p0", "p4a","p1", "p2a", "p2b", "p3"),
                                                labels = c("Setting I (featureless)",
                                                           "Setting I",
+                                                          "Setting II - M",
                                                           "Setting II - A1",
-                                                          "Setting II - M1",
-                                                          "Setting II - A2",
-                                                          "Setting II - AM1",
-                                                          "Setting II - AM2")),
+                                                          "Setting II - AM",
+                                                          "Setting II - AM (supp)",
+                                                          "Setting II - A2")),
                          procedure_eval = factor(procedure_eval, 
                                                  levels = c("apparent_error", "resampling_error",
                                                             "nested_resampling_error"),
                                                  labels = c("Apparent", "Resampling", "Nested resampling")),
+                         sample_size = factor(sample_size,
+                                              levels = c("sample25", "sample50"),
+                                              labels = c("n = 362", "n = 724")),
                          # only for plot titles:
                          title_eval = "Performance measure",
                          title_gen = "Model generation",
@@ -47,7 +53,7 @@ resdf = resdf %>% mutate(learner_name = factor(learner_name, levels = c("lrn_car
                                                        labels = c("RMSE", "R^2")))
 
 
-## Check that AM1 is similar to A2 and exclude from data set ----------------------------------------
+## Check that AM1 is similar to A2 and exclude from data set ---------------------------------------
 ggplot(resdf %>% filter(procedure_gen_short %in% c("p3", "p2b") & split_type == "naive"), 
        aes(y = eval_error-test_error, col = procedure_eval,
                   x = procedure_gen_short))+
@@ -66,31 +72,42 @@ resdf = resdf %>% filter(procedure_gen_short != "p2b")
 resdf_teams = resdf %>% filter(split_type == "teams")
 resdf = resdf %>% filter(split_type == "naive")
 
-
+# Figures: Main results ============================================================================
 # A) Compare test and reported errors: differences  ------------------------------------------------
 stopifnot(length(unique(resdf$split_type))==1) # we only consider one split_type here
 
-p = ggplot(resdf %>% filter(procedure_gen != "featureless"), aes(y = eval_error-test_error, col = procedure_eval,
-                      x = learner_name))+
+p = ggplot(resdf %>% filter(procedure_gen != "featureless" & learner_name %in% c("CART", "CIT")), 
+           aes(y = eval_error-test_error, col = procedure_eval,
+               x = learner_name))+
   geom_hline(yintercept = 0, linetype = "dotted")+
   geom_boxplot()+
   theme_bw()+
+#  scale_x_discrete(labels = c("CART \nn=362", "CART \nn=724", "CIT \nn=362", "CIT \nn=724"),
+                #  guide = guide_axis(n.dodge = 2)
+       #         )+
+  scale_color_manual(values = col_errors[1:3])+
   labs(x = "Learning algorithm", col = "Model evaluation", y = "PE(D) - PE(Dnew)")+
-  ggh4x::facet_nested(title_eval + eval_criterion_label ~  title_gen + procedure_gen_label, scales = "free_y",
-                      labeller = labeller(eval_criterion_label = label_parsed))+
-  theme(legend.position = "top")
+  ggh4x::facet_nested(title_eval + eval_criterion_label ~  title_gen + procedure_gen_label + sample_size, 
+                      scales = "free",
+                      labeller = labeller(eval_criterion_label = label_parsed),
+                      solo_line = FALSE)+
+  theme(legend.position = "top",
+        text = element_text(size = 15),
+        strip.text = element_text(size = 14),
+        panel.spacing = unit(0,"line"))
 
-p %+% subset(resdf, sample_size == "sample50")
-ggsave("03_results/plots/diff50.pdf")
-p %+% subset(resdf, sample_size == "sample25")
-ggsave("03_results/plots/diff25.pdf")
+ ggsave(p, file = "./03_results/plots/main_difft.png", height = 8, width =11.5)
+ rm(p)
 
 
 # B) Compare test and reported errors: absolute values  --------------------------------------------
+
+# absolute performance Dtest
 df_test = resdf %>% select(-procedure_gen_eval, -procedure_eval, -eval_error, -contains("hp_")) %>%
   distinct() %>% 
   rename(error_value = test_error) %>%
   mutate(error_type = "Dnew")
+# absolute performance reported
 df_eval = resdf %>% select(-test_error, -procedure_gen_eval, -contains("hp_")) %>%
   distinct() %>% 
   rename(error_value = eval_error,
@@ -99,20 +116,31 @@ resdf_abs = bind_rows(df_test, df_eval)
 resdf_abs = resdf_abs %>% mutate(error_type = factor(error_type,
                                                      levels = c("Apparent","Resampling",
                                                                 "Nested resampling","Dnew")))
+# absolute performance featureless
+resdf_abs = full_join(resdf_abs,
+              df_test %>% filter(procedure_gen=="featureless") %>% 
+                group_by(eval_criterion, sample_size) %>% 
+                summarise(median_featureless_test = median(error_value)),
+              by = c("eval_criterion", "sample_size"))
 
-ggplot(resdf_abs, 
+p = ggplot(resdf_abs %>% filter(learner_name %in% c("CART", "CIT") &
+                              procedure_gen != "featureless") , 
        aes(col = error_type, y = error_value, x = learner_name))+
   geom_boxplot()+
-  ggh4x::facet_nested(title_eval + eval_criterion_label ~  title_gen + procedure_gen_label, scales = "free_y",
+  geom_hline(aes(yintercept = median_featureless_test), linetype = "dotted")+
+  ggh4x::facet_nested(title_eval + eval_criterion_label ~  title_gen + procedure_gen_label + 
+                        sample_size, scales = "free_y",
                       labeller = labeller(eval_criterion_label = label_parsed))+
   theme_bw()+
+  scale_color_manual(values = col_errors)+
   labs(x = "Learning algorithm", col = "Model evaluation", y = "PE")+
-  theme(legend.position = "top")
+  theme(legend.position = "top",
+        text = element_text(size = 15),
+        strip.text = element_text(size = 14),
+        panel.spacing = unit(0,"line"))
+ggsave(p, file = "./03_results/plots/main_abs.png", height = 8, width =11.5)
 
-
-## evtl. rechts bias mit skala rechts
-#########sample size
-#### featureless test ? 
+rm(p, resdf_abs, df_test, df_eval)
 
 
 
@@ -121,7 +149,8 @@ ggplot(resdf_abs,
 # Only consider generation procedures
 resdf_hp = resdf %>% select(-procedure_gen_eval, -procedure_eval, -eval_error) %>%
   distinct() %>% 
-  filter(!(procedure_gen_short %in% c("p0")))
+  filter(!(procedure_gen_short %in% c("featureless", "p0")) &
+           learner_name %in% c("CART", "CIT"))
 
 # Preprocessing HPs
 resdf_hp_preproc = resdf_hp %>% filter(!(procedure_gen_short %in% c("p1")))
@@ -133,60 +162,96 @@ resdf_hp_preproc = droplevels(resdf_hp_preproc)
 resdf_hp_preproc = resdf_hp_preproc %>% 
   mutate(hp_type_label = factor(hp_type,
                                 # the level order corresponds to the order in which the HPs are considered during sequential tuning
-                                levels = c("hp_preproc.feature.ipos.option", "hp_preproc.feature.age.option", 
-                                           "hp_preproc.feature.akps.option",
-                                           "hp_preproc.drop.targetout.option", 
-                                           "hp_preproc.drop.iposca.option"),
-                                labels = c("IPOS", "Age", "AKPS", "Drop Outlier", "Drop IPOS"))) 
+                                levels = c("hp_preproc.drop.targetout.option",
+                                           "hp_preproc.drop.iposca.option",
+                                           "hp_preproc.feature.ipos.option", 
+                                           "hp_preproc.feature.age.option", 
+                                           "hp_preproc.feature.akps.option"),
+                                labels = c("lambda[outlier]", "lambda[ca]", "lambda[ipos]",
+                                           "lambda[age]", "lambda[akps]" )), title_hp = "HP") 
 
 
-p = ggplot(resdf_hp_preproc, 
-           aes(x = learner_name, fill = hp_value))+
-  geom_bar()+
-  ggh4x::facet_nested(title_eval + eval_criterion_label ~ hp_type_label + title_gen + procedure_gen_label ,
-                     # labeller = labeller(eval_criterion_label = label_parsed)
-                      )+
-  theme_bw()+
-  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))+
-  # scale_x_discrete(labels = c("IPOS" = expression(lambda[IPOSScore]),
-  #                             "Age" = expression(lambda[Age]), 
-  #                             "AKPS" = expression(lambda[AKPS]),
-  #                             "Drop Outlier" = expression(lambda[DropOutlier]), 
-  #                             "Drop IPOS" = expression(lambda[DropIPOS])))+
-  scale_fill_manual(values = rev(wes_palette("GrandBudapest2", n = 4)))+
-  labs()
 
-p %+% subset(resdf_hp_preproc, sample_size == "sample50")
-p %+% subset(resdf_hp_preproc, sample_size == "sample25")
 
+plot_preproc_fct = function(n, learner){
+  p = ggplot(resdf_hp_preproc %>% filter(sample_size == n & learner_name == learner), 
+             aes(x = hp_type_label, fill = hp_value))+
+    geom_bar(stat = "count")+
+    ggh4x::facet_nested(title_eval + eval_criterion_label ~ title_gen + procedure_gen_label ,
+                        labeller = labeller(eval_criterion_label = label_parsed))+
+    theme_bw()+
+    scale_x_discrete(labels = c("lambda[outlier]" = expression(lambda[outlier]),
+                                "lambda[ca]" = expression(lambda[ca]), 
+                                "lambda[ipos]" = expression(lambda[ipos]),
+                                "lambda[age]" = expression(lambda[age]), 
+                                "lambda[akps]"  = expression(lambda[akps])))+
+    scale_fill_manual(values = rev(wes_palette("GrandBudapest2", n = 4)))+
+    labs(x = "HP ", fill = "Selected HP value", y = "Number of repetitions")+
+    theme(legend.position = "top")
+  return(p)
+}
 
 # Algorithm HPs
-resdf_hp_algo = melt(resdf_hp,
+cp_lower = 0.001
+cp_upper = 0.1
+minbucket_lower = 5
+minbucket_upper = 20
+alpha_lower = 0.01 
+alpha_upper = 0.1
+minbucket_default = 7 
+alpha_default = 0.05
+cp_default = 0.01
+resdf_hp_algo = melt(resdf_hp %>% filter(procedure_gen_short != "p4a") ,
                      measure.vars = colnames(resdf %>% select(hp_minbucket, hp_cp, hp_alpha)),
                      value.name = "hp_value", variable.name = "hp_type") %>% 
   filter(!is.na(hp_value))
-### lieber einzeln die hps
-### alpha reemtree????
-ggplot(resdf_hp_algo %>% 
-         filter(hp_type == "hp_cp"), aes(x = learner_name, y = hp_value))+
-  geom_boxplot()+
-  ggh4x::facet_nested(title_eval + eval_criterion_label ~ title_gen + procedure_gen_label,
-                      labeller = labeller(eval_criterion_label = label_parsed))+
-  theme_bw()
 
-ggplot(resdf_hp_algo %>% 
-         filter(hp_type == "hp_alpha"), aes(x = learner_name, y = hp_value))+
-  geom_boxplot()+
-  ggh4x::facet_nested(title_eval + eval_criterion_label ~ title_gen + procedure_gen_label,
-                      labeller = labeller(eval_criterion_label = label_parsed))+
-  theme_bw()
+plot_algo_fct = function(n, hp, learner){
+  if(hp == "hp_cp"){
+      hp_default = cp_default
+      hp_lower = cp_lower
+      hp_upper = cp_upper
+  } else if(hp == "hp_alpha"){
+    hp_default = alpha_default
+    hp_lower = alpha_lower
+    hp_upper = alpha_upper
+  } else if(hp == "hp_minbucket"){
+    hp_default = minbucket_default
+    hp_lower = minbucket_lower
+    hp_upper = minbucket_upper
+  }
+  p = ggplot(resdf_hp_algo %>% 
+           filter(hp_type == hp & sample_size == n & learner_name == learner),
+         aes(x = hp_type, y = hp_value))+
+    geom_hline(yintercept = hp_default, linetype = "dotted")+
+    geom_hline(yintercept = c(hp_lower, hp_upper))+
+    geom_boxplot()+
+    scale_x_discrete(labels = c("hp_cp" = expression(lambda[cp]),
+                                "hp_alpha" = expression(lambda[alpha]),
+                                "hp_minbucket" = expression(lambda[minbucket])))+
+    ggh4x::facet_nested(title_eval + eval_criterion_label ~ title_gen + procedure_gen_label,
+                        labeller = labeller(eval_criterion_label = label_parsed))+
+    theme_bw()+
+    labs(x = "HP ", y = "HP value")
+  return(p)
+}
 
-ggplot(resdf_hp_algo %>% 
-         filter(hp_type == "hp_minbucket"), aes(x = learner_name, y = hp_value))+
-  geom_boxplot()+
-  ggh4x::facet_nested(title_eval + eval_criterion_label ~ title_gen + procedure_gen_label,
-                      labeller = labeller(eval_criterion_label = label_parsed))+
-  theme_bw()
+grid.arrange(plot_preproc_fct("n = 724", "CART"),
+             plot_algo_fct("n = 724", "hp_cp", "CART"),
+             plot_algo_fct("n = 724", "hp_minbucket", "CART"),
+             layout_matrix = rbind(c(1,1),
+                                   c(2,3)))
+
+plot_preproc_fct("n = 362", "CART")
+plot_preproc_fct("n = 724", "CIT")
+plot_preproc_fct("n = 362", "CIT")
+
+
+plot_preproc_fct("n = 724", "hp_alpha", "CIT")
+plot_preproc_fct("n = 724", "hp_minbucket", "CIT")
+
+
+
 
 
 
@@ -237,6 +302,27 @@ ggplot(resresdf_hp %>% filter(grepl("preproc.", hp_type)),
        aes(x = hp_type, fill = hp_value))+
   geom_bar()+
   facet_wrap(~procedure_short+ eval_criterion)
+# supplement with lmmt und reemt##----------------------------------
+p = ggplot(resdf %>% filter(procedure_gen != "featureless"), 
+           aes(y = eval_error-test_error, col = procedure_eval,
+               x = learner_name))+
+  geom_hline(yintercept = 0, linetype = "dotted")+
+  geom_boxplot()+
+  theme_bw()+
+  labs(x = "Learning algorithm", col = "Model evaluation", y = "PE(D) - PE(Dnew)")+
+  ggh4x::facet_nested(title_eval + eval_criterion_label ~  title_gen + procedure_gen_label, scales = "free_y",
+                      labeller = labeller(eval_criterion_label = label_parsed))+
+  theme(legend.position = "top")
+
+p %+% subset(resdf, sample_size == "sample50")
+ggsave("03_results/plots/diff50.pdf")
+p %+% subset(resdf, sample_size == "sample25")
+ggsave("03_results/plots/diff25.pdf")
+# p %+% subset(resdf, sample_size == "sample50")
+# ggsave("03_results/plots/diff50.pdf")
+# p %+% subset(resdf, sample_size == "sample25")
+# ggsave("03_results/plots/diff25.pdf")
+
 # Plot errors --------------------------------------------------------------------------------------
 ggplot(resdf, aes(y = test_error - eoi_value, x = procedure_short, col = procedure_short))+
   geom_boxplot()+
