@@ -10,6 +10,7 @@ library(forcats)
 library(RColorBrewer)
 library(gridExtra)
 library(purrr)
+library(ggpubr)
 
 # Load data and functions --------------------------------------------------------------------------
 load("./01_data/data_phaselevel.RData")
@@ -231,7 +232,8 @@ plotiposca_fct = function(iposdat){
     labs(fill = "", x = "", y = "Proportion")+
     guides(fill = guide_legend(reverse=T,nrow = 1))+
     theme(legend.position = "top",
-          text = element_text(size = 13))
+          text = element_text(size = 13),
+          legend.text=element_text(size=10))
   return(p)
 }
 p1 = plotiposca_fct(iposdat1)
@@ -241,10 +243,11 @@ p4 = plotiposca_fct(iposdat4)
 # p=grid.arrange(grobs=list(p1,p2,p3,p4),layout_matrix = rbind(c(1,1,1),
 #                                                            c(2,3,4)),
 #                widths = c(2, 2, 1),ncol =3)
-p=grid.arrange(grobs=list(p1,p2,p3,p4),ncol=1,
-               heights = c(7,3,3,2))
-ggsave(p, file = "./03_results/plots/ipos.png", width = 220, 
-       height = 297, units = "mm")
+#p=grid.arrange(grobs=list(p1,p2,p3,p4),ncol=1,
+#               heights = c(6,3,3,2))
+p = ggpubr::ggarrange(p1,p2,p3,p4,ncol=1,
+          heights = c(6,3,3,2.15), labels = c("a","b", "c", "d"), font.label = list(size = 15))
+ggsave(p, file = "./03_results/plots/ipos_indivdual.png", width = 9, height = 10)
 rm(p1, p2, p3, p4, group1, group2, group3, group4,
    iposdat1, iposdat2, iposdat3, iposdat4)
 # Cluster analysis ---------------------------------------------------------------------------------
