@@ -1,68 +1,3 @@
-is_ok_resampling_fct = function(task,
-                                data_test,
-                                split_type,
-                                resampling_parameters){
-  
-  
-  # Set seed
-  set.seed(resampling_parameters$seed_resampling)
-  
-  # Specify tuner and terminator ----
-  tuner = tnr("random_search") # for efficiency, batch_size = number of evaluations
-  
-  terminator = trm("evals", n_evals = 1) # stop searching after (k*number of HPs) evaluations
-  
-  # Specify resampling strategy ----
-  if(split_type == "naive"){
-    resampling = rsmp("cv", folds = resampling_parameters$folds_cv)
-  } else if(split_type == "teams"){
-    resampling = rsmp("loo")
-  }
-  
-  resampling$instantiate(task)
-  
-  # seltene ausprägungen
-  # within resampling
-  df = task$data()
-  df$row_id = task$row_ids
-  inst = as.data.frame(resampling$instance)
-  df=full_join(df, inst, by = "row_id")
-  df = df %>% select(row_id, fold, age, ipos_shortness_breath, ipos_pain, akps)
-  df = df %>% mutate(age =  cut(age, breaks = c(21,seq(50,90,10),104), include.lowest = TRUE )) %>%
-    mutate(akps = case_when(
-      akps %in% c("70", "80", "90") ~ "70_80_90",
-      .default = akps)) %>%
-    mutate(ipos_pain =  fct_collapse(ipos_pain, `not at all` = c("not at all", "cannot assess")),
-           ipos_shortness_breath  =  fct_collapse(ipos_shortness_breath, `not at all` = c("not at all", "cannot assess")))
-  df_sum = df %>% group_by(fold) %>% summarise_all(list(n_distinct))
-  df_sum = df_sum %>% summarise(age_c = sum(age == max(age)),
-                                ipos_shortness_breath_c = sum(ipos_shortness_breath == max(ipos_shortness_breath)),
-                                ipos_pain_c = sum(ipos_pain == max(ipos_pain)),
-                                akps_c = sum(akps == max(akps)))
-  is_ok1 = rowSums(df_sum==1)==0
-  
-  # test data
-  data_test_ok = data_test  %>%
-    select(age, ipos_shortness_breath, ipos_pain, akps) %>%
-    mutate(age =  cut(age, breaks = c(21,seq(50,90,10),104), include.lowest = TRUE )) %>%
-    mutate(akps = case_when(
-      akps %in% c("70", "80", "90") ~ "70_80_90",
-      .default = akps)) %>%
-    mutate(ipos_pain =  fct_collapse(ipos_pain, `not at all` = c("not at all", "cannot assess")),
-           ipos_shortness_breath  =  fct_collapse(ipos_shortness_breath, `not at all` = c("not at all", "cannot assess")))  %>% 
-    summarise_all(list(n_distinct)) %>% mutate(which = "test")
-  df_compare = df %>% select(age, ipos_shortness_breath, ipos_pain, akps) %>% summarise_all(list(n_distinct)) %>%
-    mutate(which = "train")
-  data_test_ok = bind_rows(data_test_ok, df_compare)
-  is_ok2 = any(data_test_ok %>% filter(which =="test") %>% select(-which) >   data_test_ok %>% filter(which =="train" )%>% select(-which)) == FALSE
-  
-  is_ok = is_ok1 & is_ok2
-  return(is_ok)
-}
-
-######################
-
-
 optim_fct = function(rep, data, id_split_list, 
                      sample_size,# = c("sample50", "sample25"), 
                      setting_name,# = c("sapv", "pmd", "station"), 
@@ -111,12 +46,6 @@ optim_fct = function(rep, data, id_split_list,
   }
   rm(data_train)
   
-  ########################
- # is_ok = is_ok_resampling_fct(task = task, data_test = data_test,split_type = split_type, resampling_parameters = resampling_parameters)
- # if(is_ok){
-  #######################
-  
-  
   # 3. Specify graph_learner (combination of preprocessing pipeline and learner)
   
   # clone all necessary objects (must not alter the input objects!)
@@ -159,8 +88,6 @@ optim_fct = function(rep, data, id_split_list,
   
   # Save result
   save(results, file = filename)
-  #return(results)
- ###isok }
   }
 }
 
