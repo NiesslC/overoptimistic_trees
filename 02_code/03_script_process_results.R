@@ -102,7 +102,7 @@ resdf_p2b = 1:length(res_filenames_p2b) %>% purrr::map_df(.f = function(i) {
   resdf_p2b = cbind(map_df(res_p2b , ~.[setting_info]),
                     map_df(res_p2b , ~.[["final_tree"]][c("apparent_error", "resampling_error", "test_error")]),
                     # grepl! necessary some HPs in some learners give error because formula and not a character:
-                    map_df(res_p2b , ~.$final_tree$graph_learner_tuned$param_set$values[!grepl(".random",
+                    map_df(res_p2b , ~.$final_tree$graph_learner_tuned$param_set$values[!grepl(".random|affect_column",
                                                                                                names(.$final_tree$graph_learner_tuned$param_set$values))]))
   rm(res_p2b)
   gc()
