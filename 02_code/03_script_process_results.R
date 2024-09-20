@@ -65,7 +65,7 @@ resdf_p1 = 1:length(res_filenames_p1) %>% purrr::map_df(.f = function(i) {
 resdf_p1 = melt(resdf_p1, measure.vars = c("apparent_error", "resampling_error", "nested_resampling_error"),
      value.name = "eval_error", variable.name = "procedure_eval")
 resdf_p1 = resdf_p1 %>% mutate(procedure_gen_eval = case_when(
-  procedure_eval == "apparent_error" ~ "p1_apparrent",
+  procedure_eval == "apparent_error" ~ "p1_apparent",
   procedure_eval == "resampling_error" ~ "p1_resampling",
   procedure_eval == "nested_resampling_error" ~ "p1_nested"
   ))
@@ -186,7 +186,7 @@ resdf = resdf %>%
   mutate(procedure_gen_eval = factor(procedure_gen_eval, # order levels 
                                   levels = c("featureless_apparent", 
                                              "p0_apparent", "p0_resampling", 
-                                             "p1_apparrent", "p1_resampling", "p1_nested",
+                                             "p1_apparent", "p1_resampling", "p1_nested",
                                              "p2a_apparent", "p2a_resampling",
                                              "p2b_apparent", "p2b_resampling",
                                              "p3_apparent", "p3_resampling", "p3_nested",
