@@ -68,7 +68,7 @@ LearnerRegrRpart = R6Class("LearnerRegrRpart",
                              .predict = function(task) {
                                pars = self$param_set$get_values(tags = "predict")
                                # get newdata and ensure same ordering in train and predict
-                               newdata = ordered_features(task, self)
+                               newdata = task$data(cols = intersect(names(self$state$task_prototype), task$feature_names))
                                
                                response = invoke(
                                  predict,
