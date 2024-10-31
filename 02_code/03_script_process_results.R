@@ -235,6 +235,8 @@ save(resdf, file = "./03_results/rdata/_resdf.RData")
 # restree_p0 = map(res_p0, ~.$graph_learner$model[grepl("lrn",names(.$graph_learner$model))][[1]]$model) 
 # names(restree_p0) = setting_names
 
+# 211 4a = highest discrepancy
+
 # Trees
 # restree_p1 = map(res_p1, ~.$graph_learner$model[grepl("lrn",names(.$graph_learner_tuned$model))][[1]]$model) 
 # names(restree_p1) = setting_info_names
