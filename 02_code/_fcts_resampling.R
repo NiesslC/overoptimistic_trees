@@ -1,3 +1,18 @@
+# FUNCTION resampling_fct
+# = function that tunes graph_learner and returns apparent error, resampling error, 
+# test error and tuned graph_learner
+# INPUT
+# - task: task
+# - data_test: test data set 
+# - split_type: whether splitting should be performed on team level ("teams") or ignore clustering ("naive")
+# - graph_learner: graph_learner (in paper "learning pipeline")
+# - search_space: search space of tuned hyperparameters
+# - resampling_parameters: specification of resampling (including seeds)
+# OUTPUT: 
+# - graph_learner_tuned: tuned graph learner 
+# - apparent_error: apparent error
+# - resampling_error: resampling error
+# - test_error: error on test data set 
 resampling_fct = function(task,
                           data_test,
                           split_type,
@@ -55,7 +70,17 @@ resampling_fct = function(task,
 }
 
 
-
+# FUNCTION nested_resampling_fct
+# = function that returns nested resampling error
+# INPUT
+# - task: task
+# - data_test: test data set 
+# - split_type: whether splitting should be performed on team level ("teams") or ignore clustering ("naive")
+# - graph_learner: graph_learner (in paper "learning pipeline")
+# - search_space: search space of tuned hyperparameters
+# - resampling_parameters: specification of resampling (including seeds)
+# OUTPUT: 
+# - nested_resampling_error: nested resampling error 
 nested_resampling_fct = function(task,
                                  split_type,
                                  graph_learner, 

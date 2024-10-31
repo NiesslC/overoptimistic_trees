@@ -1,8 +1,10 @@
-# selector_help = function(task) {
-#   task$feature_names[grepl("age|ipos|age|cogn|akps|companion_id|team_id", task$feature_names)]
-# }
-
-
+# FUNCTION preprocess_drop_iposca_fct
+# = function that returns threshold for removing observations where the sum of 
+# IPOS features with "cannot assess" is >=  threshold 
+# INPUT
+# - option: A-D, determines which threshold is returned (relates to lambda_ca in the paper)
+# OUTPUT: 
+# - threshold: threshold as described above 
 preprocess_drop_iposca_fct = function(option){
   ## Option A-D ----
   list_options = as.list(seq(17,10,by = -2)) 
@@ -11,7 +13,14 @@ preprocess_drop_iposca_fct = function(option){
   return(threshold)
 }
 
-
+# FUNCTION preprocess_drop_targetout_fct
+# = function that returns outlier_threshold that corresponds to ith percentile of target 
+# (i is determined by option) and above which observations are defined as outliers
+# INPUT
+# - target_values = target (= outcome) values for which percentile should be calculated
+# - option: A-D, determines which percentile is calculated (relates to lambda_outlier in the paper)
+# OUTPUT: 
+# - outlier_threshold: threshold as described above (=theta_outlier in the paper)
 preprocess_drop_targetout_fct = function(target_values, option){
   if(option == "A"){
     # Option A ----
@@ -37,7 +46,15 @@ preprocess_drop_targetout_fct = function(target_values, option){
 
 
 
-
+# FUNCTION preprocess_target_fct
+# = function that returns data that includes a corrected version of the target and removes
+# all other variables related to the target
+# INPUT
+# - data = df where target preprocessing should be applied
+# - option: A-C, determines which target variable is used (in the paper, only option A is considered)
+# - correction_factor: factor by which values of first day of first phases are corrected (=theta_correct in the paper)
+# OUTPUT: 
+# - data: processed df
 preprocess_target_fct = function(data, option, correction_factor){
   
   # Select target variable
@@ -84,6 +101,13 @@ preprocess_target_fct = function(data, option, correction_factor){
   return(data)
 }
 
+# FUNCTION preprocess_target_getcorr_fct
+# = function that returns correction factor to correct target variable
+# INPUT
+# - data = df which includes target variable for which correction factor is calculated
+# - option: A-C, determines which target variable is used (in the paper, only option A is considered)
+# OUTPUT: 
+# - correction_factor: factor by which values of first day of first phases are corrected (=theta_correct in the paper)
 preprocess_target_getcorr_fct = function(data, option){ 
   
   if(option == "A"){
@@ -117,7 +141,13 @@ preprocess_target_getcorr_fct = function(data, option){
   return(correction_factor)
 }
 
-
+# FUNCTION preprocess_feature_age_fct
+# = function that preprocesses feature age
+# INPUT
+# - data = df on which preprocessing is performed
+# - option: A-B, determines how age is processed (relates to lambda_age in the paper)
+# OUTPUT: 
+# - data: processed df
 preprocess_feature_age_fct = function(data, option){ 
   if(option == "A"){
     # Option A ---- 
@@ -133,7 +163,13 @@ preprocess_feature_age_fct = function(data, option){
   return(data)
   }
 
-
+# FUNCTION preprocess_feature_akps_fct
+# = function that preprocesses feature AKPS
+# INPUT
+# - data = df on which preprocessing is performed
+# - option: A-B, determines how AKPS is processed (relates to lambda_akps in the paper)
+# OUTPUT: 
+# - data: processed df
 preprocess_feature_akps_fct = function(data, option){
   if(option == "A"){
     # Option A ---- 
@@ -159,8 +195,15 @@ preprocess_feature_akps_fct = function(data, option){
   return(data)
 }
 
-# important that all newly generated variables start with ipos
+# FUNCTION preprocess_feature_ipos_fct
+# = function that calculates IPOS score
+# INPUT
+# - data = df on which preprocessing is performed
+# - option: A-D, determines how IPOS score is calculated (relates to lambda_ipos in the paper)
+# OUTPUT: 
+# - data: processed df
 preprocess_feature_ipos_fct = function(data, option){
+  # important that all newly generated variables start with ipos!
   if(option == "A"){
     # Option A ----
     # IPOS score defined as sum of all 17 IPOS variables with range [0,68]
