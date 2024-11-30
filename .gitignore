@@ -5,4 +5,5 @@
 01_data/*
 02_code/sandboxes/*
 03_results/rdata/*
+03_results/rdata/id_split_sapv_list.RData
 !03_results/rdata/_resdf.RData
