@@ -3,7 +3,7 @@ library(data.table)
 library(Hmisc)
 library(tidyr)
 library(table1)
-library(knitr)
+#library(knitr)
 library(kableExtra)
 library(reshape2)
 library(forcats)
@@ -49,8 +49,8 @@ able to share his feelings?"
 label(data_phaselevel$ipos_information) <- "IPOS information: did the patient receive 
 as much information as wanted?"
 label(data_phaselevel$ipos_practical_matters) <- "IPOS practical matters: have practical matters been tackled?"
-label(data_phaselevel$cogn_confusion) <- "Cognitive confusion"
-label(data_phaselevel$cogn_agitation) <- "Cognitive agitation"
+label(data_phaselevel$cogn_confusion) <- "Confusion"
+label(data_phaselevel$cogn_agitation) <- "Agitation"
 data_phaselevel = data_phaselevel %>% mutate(akps = factor(akps, levels = c("10","20","30","40","50","60","70","80","90"),
                                          labels = c("(10) comatose or barely rousable",
                                                            "(20) totally bedfast and requiring extensive nursing care \nby professionals and/or family",
@@ -70,6 +70,7 @@ ipos_score = preprocess_feature_ipos_fct(data = data_phaselevel, option = "A") %
 data_phaselevel = full_join(data_phaselevel, ipos_score, by = c("companion_id","grp"))
 label(data_phaselevel$ipos_score) <- "IPOS total score"
 
+
 # Outcome: correction factor
 correction_factor = preprocess_target_getcorr_fct(data = data_phaselevel, 
                                                   option = "A")
@@ -81,7 +82,7 @@ label(data_phaselevel$targetvar) <- "Average cost per day per palliative care ph
 units(data_phaselevel$targetvar) <- "€"
 
 
-# Table: Descriptives dataset (default preprocessing) ----------------------------------------------
+# Descriptives data set (Table S1 in manuscript) ---------------------------------------------------
 
 ## Table level: palliative care phase
 t1 <- table1(~ targetvar + palliativephase + age + cogn_confusion +
@@ -91,36 +92,46 @@ t1 <- table1(~ targetvar + palliativephase + age + cogn_confusion +
 t1kable(t1)
 save_kable(t1kable(t1, format = "latex"), file = "./03_results/tex/companion_phase.tex")
 
+# Clustering (Figure S7 in manuscript) -------------------------------------------------------------
 
-## Table level: episode of care
-data_patientlevel = data_phaselevel %>% 
+# Figure: Episode level
+data_episodelevel = data_phaselevel %>%
   group_by(companion_id) %>%
   dplyr::select(companion_id, team_id, setting) %>%
   mutate(number_phases = n()) %>%
-  distinct()
+  distinct() 
+p_episode = ggplot(data_episodelevel, aes(x = number_phases))+
+  geom_bar(fill = "grey55")+
+  theme_bw()+
+  coord_flip()+
+  labs(x = "Number of phases per episode", y =  "Number of episodes (705 in total)" )+
+  scale_x_continuous(breaks = 1:max(data_episodelevel$number_phases))
 
-# levels(data_patientlevel$setting) <- c("Station", "PMD", "SAPV")
-label(data_patientlevel$number_phases) <- "Number of phases per patient"
-
-t2 <- table1(~ number_phases, 
-             data = data_patientlevel)
-t1kable(t2)
-t1kable(t2, format = "latex")
-
-## Table level: team
+# Figure: Team level
 data_teamlevel = data_phaselevel %>% 
-  group_by(team_id) %>%
-  dplyr::select(team_id, setting) %>%
-  mutate(number_patients = n()) %>%
-  distinct()
+    group_by(team_id) %>%
+    dplyr::select(team_id, setting) %>%
+    mutate(number_patients = n()) %>%
+    distinct() 
+data_teamlevel = data_teamlevel %>% 
+  mutate(team_id = factor(team_id, 
+                          levels =  unlist(data_teamlevel[order(-data_teamlevel$number_patients),"team_id"])))
 
-label(data_teamlevel$number_patients) <- "Number of patients per team"
-t3 <- table1(~ number_patients, 
-             data = data_teamlevel)
-t1kable(t3)
-t1kable(t3, format = "latex")
+p_team = ggplot(data_teamlevel, aes(y = number_patients, x = team_id))+
+  geom_bar(stat = "identity", fill = "grey55")+
+  labs(x = "Team (9 in total)", y = "Number of episodes per team")+
+  theme_bw()+
+  scale_x_discrete(labels = LETTERS[1:9])
 
-# Table: IPOS cannot assess ------------------------------------------------------------------------
+p = ggpubr::ggarrange(p_episode, p_team,ncol=1,
+                      #heights = c(6,3,3,2.15), 
+                      labels = c("a","b"), 
+                      font.label = list(size = 14))
+ggsave(p, file = "./03_results/plots/cluster.eps", width = 6, height = 8, device="eps")
+
+
+rm(data_teamlevel, data_episodelevel)
+# IPOS cannot assess (Table S2 in manuscript) -----------------------------------------------------
 
 iposdat_ca = data_phaselevel %>% select(contains("ipos"),-ipos_score) %>% 
   mutate(sum_ca = rowSums(. == "cannot assess"))
@@ -151,7 +162,7 @@ tca
 save_kable(t1kable(tca, format = "latex"), file = "./03_results/tex/companion_ca.tex")
 rm(iposdat_ca)
 
-# Figures: IPOS individual features ----------------------------------------------------------------
+# IPOS individual features (Figure S1 in manuscript) -----------------------------------------------
 
 # Plot individual features
 group1 = paste0("ipos_",c("pain",
@@ -240,40 +251,12 @@ p1 = plotiposca_fct(iposdat1)
 p2 = plotiposca_fct(iposdat2)
 p3 = plotiposca_fct(iposdat3)
 p4 = plotiposca_fct(iposdat4)
-# p=grid.arrange(grobs=list(p1,p2,p3,p4),layout_matrix = rbind(c(1,1,1),
-#                                                            c(2,3,4)),
-#                widths = c(2, 2, 1),ncol =3)
-#p=grid.arrange(grobs=list(p1,p2,p3,p4),ncol=1,
-#               heights = c(6,3,3,2))
 p = ggpubr::ggarrange(p1,p2,p3,p4,ncol=1,
           heights = c(6,3,3,2.15), labels = c("a","b", "c", "d"), font.label = list(size = 15))
-ggsave(p, file = "./03_results/plots/ipos_indivdual.png", width = 9, height = 10)
+ggsave(p, file = "./03_results/plots/ipos_indivdual.eps", width = 9, height = 10, device="eps")
 rm(p1, p2, p3, p4, group1, group2, group3, group4,
    iposdat1, iposdat2, iposdat3, iposdat4)
-# Cluster analysis ---------------------------------------------------------------------------------
 
-clusterdat = data_phaselevel %>% select(team_id, companion_id, 
-                                        targetvar, palliativephase,
-                                        age, ipos_score,akps,
-                                        cogn_confusion, cogn_agitation
-                                        ) #%>%
-clusterdat %>% select(-team_id) %>% # Exclude the grouping variable for now
-  map(~ kruskal.test(.x ~ clusterdat$team_id)) %>%
-  map_df(~ broom::tidy(.x), .id = "variable")
-  #mutate()
-model.matrix(~0+., data=clusterdat) %>% 
-  cor(use="pairwise.complete.obs") %>% 
-  ggcorrplot(show.diag=TRUE, type="lower", lab=TRUE, lab_size=2)
-
-
-
-kruskal.test(targetvar ~ age, data = data_phaselevel)
-ggplot(data_phaselevel, aes(x = team_id, y = targetvar))+
-  geom_boxplot()
-ggplot(data_phaselevel, aes(x = team_id, y = ipos_score))+
-  geom_boxplot()
-data_phaselevel %>% group_by(team_id) %>%
-  summarise(cor = var(targetvar))
 
 
 
