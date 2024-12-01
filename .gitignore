@@ -2,6 +2,7 @@
 .Rhistory
 .RData
 .Ruserdata
+README.Rmd
 01_data/*
 02_code/sandboxes/*
 03_results/rdata/*
