@@ -76,10 +76,10 @@ This folder contains three subfolders: `/plots`, `/rdata`, and `/tex`.
 ## How to reproduce the results
 
 Since the COMPANION data set cannot be made publicly available (it would
-be contained in `01_data`), only the individual prediction error
+be contained in `/01_data`), only the individual prediction error
 estimates are provided as intermediate results
-(`03_results/rdata/_resdf.RData`). With this data, the figures shown in
-the manuscript (stored in `03_results/plots`) can be reproduced.
+(`/03_results/rdata/_resdf.RData`). With this data, the figures shown in
+the manuscript (stored in `/03_results/plots`) can be reproduced.
 
 ## Session information
 
