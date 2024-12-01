@@ -11,13 +11,75 @@ knitr::opts_chunk$set(
 )
 ```
 
-# overoptimistic_trees
+# Beyond algorithm hyperparameters: on preprocessing hyperparameters and associated pitfalls in machine learning applications
 
 <!-- badges: start -->
 <!-- badges: end -->
 
-The goal of overoptimistic_trees is to ...
+This repository contains code and intermediate results data of the manuscript "Beyond algorithm hyperparameters: on preprocessing hyperparameters and associated pitfalls in machine learning applications" by Christina Sauer, Luzia Hanßum, Farina Hodiamont, Claudia Bausewein, Anne-Laure Boulesteix, and Theresa Ullmann. 
 
+## File description
+
+### `/02_code`
+
+This folder contains the code used to generate all results shown in the manuscript. To run the experiment, only the files containing "script" in their file name need to be run in numerical order (e.g., 01_script_ before 02_script_).
+The script files serve the following purposes:
+
+  - **`01_script_preprocessing_fixed.R`**:  
+  Loads the COMPANION data set and performs preprocessing steps described in Supplementary Section B.2.1 of the manuscript.
+
+- **`02_script_run_simulation.R`**:  
+  Runs the experiment described in Section 5.2 of the manuscript.
+
+- **`03_script_process_results.R`**:  
+  Processes simulation results into a unified data set and saves it as `03_results/rdata/_resdf.RData`.
+
+- **`04_script_analysis_results.R`**:  
+  Creates Figure 5 (main manuscript) and other figures shown in the supplement.
+
+- **`02b_script_descriptives_companion.R`**:  
+  Generates descriptive statistics for the COMPANION data set.  
+*Note*: This file can be executed directly after `01_script_preprocessing_fixed.R`, hence the numbering `02b`.
+
+
+The remaining files in the folder serve the following purposes:
+  
+  - **`_fcts_optim.R`, `_fcts_resampling.R`**:  
+  Functions for executing the experiment (see in-file function descriptions for details).
+
+- **`_fcts_preproc.R`**:  
+  Functions specifying the different preprocessing options.
+
+- **`_src_add_mlrlearners.R`**:  
+  Adds learning algorithms of the experiment to the `mlr3` framework.
+
+- **`_src_add_mlrpipeops.R`**:  
+  Integrates preprocessing steps of the experiment into the `mlr3` framework.
+
+- **`_src_setup_learners.R`**:  
+  Configures learning algorithms for the experiment (e.g., search space for HP tuning).
+
+        
+
+### `/03_results`
+This folder contains three subfolders: `/plots`, `/rdata`, and `/tex`.  
+
+- **`/plots`**, **`/tex`**:  
+  Contains the figures and LaTeX tables shown in the manuscript (main text and supplement).
+
+- **`/rdata`**:  
+  Contains individual prediction error estimates as intermediate results (`_resdf.RData`).
+
+
+## How to reproduce the results
+Since the COMPANION data set cannot be made publicly available (it would be contained in `01_data`),
+only the individual prediction error estimates are provided as intermediate results (`03_results/rdata/_resdf.RData`).  
+With this data, the figures shown in the manuscript (stored in `03_results/plots`) can be reproduced.
+
+
+
+
+## Session info 
 <!-- What is special about using `README.Rmd` instead of just `README.md`? You can include R chunks like so: -->
 ```{r , echo= FALSE, warning = FALSE, message = FALSE}
 library(dplyr)
