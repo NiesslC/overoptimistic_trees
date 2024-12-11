@@ -10,7 +10,7 @@ This repository contains code and results of the manuscript “Beyond
 algorithm hyperparameters: on preprocessing hyperparameters and
 associated pitfalls in machine learning applications” by Christina
 Sauer, Luzia Hanßum, Farina Hodiamont, Claudia Bausewein, Anne-Laure
-Boulesteix, and Theresa Ullmann.
+Boulesteix, and Theresa Ullmann (<https://arxiv.org/abs/2412.03491>).
 
 ## File description
 
