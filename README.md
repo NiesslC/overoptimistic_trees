@@ -14,6 +14,15 @@ Boulesteix, and Theresa Ullmann (<https://arxiv.org/abs/2412.03491>).
 
 ## File description
 
+### `/01_data`
+
+This folder contains the data set `data_phaselevel_toy.RData`, a
+simulated version of the COMPANION data set generated from overall
+summary statistics. Except for some auxiliary variables, these
+statistics are also reported in the manuscript. While this toy data set
+does not include the actual data used in the analysis, it enables the
+provided code to run.
+
 ### `/02_code`
 
 This folder contains the code used to generate all results shown in the
@@ -80,6 +89,11 @@ be contained in `/01_data`), only the individual prediction error
 estimates are provided as intermediate results
 (`/03_results/rdata/_resdf.RData`). With this data, the figures shown in
 the manuscript (stored in `/03_results/plots`) can be reproduced.
+
+To still allow running the code, the toy data set
+`/01_data/data_phaselevel_toy.RData` can be used. With this data set,
+the scripts `02_script_run_simulation.R`, `03_script_process_results.R`,
+and `04_script_analysis_results.R` can be executed in this order.
 
 ## Session information
 
