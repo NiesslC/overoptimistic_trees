@@ -14,7 +14,16 @@ library(nlme) # for reemctree function
 #library(rpart.plot)
 
 # Load data and functions --------------------------------------------------------------------------
-load("./01_data/data_phaselevel.RData")
+toy = TRUE
+if(toy == TRUE){
+  # run with toy data (only for setting SAPV)
+  load("./01_data/data_phaselevel_toy.RData")
+  data_phaselevel = data_phaselevel_toy
+  rm(data_phaselevel_toy)
+} else{
+  # run with real data
+  load("./01_data/data_phaselevel.RData")
+}
 source("./02_code/_fcts_preproc.R")
 source("./02_code/_fcts_resampling.R")
 source("./02_code/_fcts_optim.R")
