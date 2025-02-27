@@ -3,6 +3,7 @@
 .RData
 .Ruserdata
 01_data/*
+!01_data/data_phaselevel_toy.RData
 02_code/sandboxes/*
 03_results/rdata/*
 !03_results/rdata/_resdf.RData
